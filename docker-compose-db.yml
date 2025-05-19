@@ -1,0 +1,17 @@
+#version: "3.9"
+
+services:
+  mssql-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql-db
+    ports:
+      - "1433:1433"  # Порт SQL Server
+    environment:
+      SA_PASSWORD: "StrongPass123!"  # ⚠️ Надежный пароль
+      ACCEPT_EULA: "Y"
+    volumes:
+      - mssql-data:/var/opt/mssql  # Данные будут сохраняться
+    restart: always
+
+volumes:
+  mssql-data:  # Общий том для хранения данных MSSQL

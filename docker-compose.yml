@@ -1,0 +1,75 @@
+#version: "3.9"
+
+services:
+  # 📦 MS SQL Server
+  mssql-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql-db
+    ports:
+      - "1433:1433"
+    environment:
+      SA_PASSWORD: "StrongPass123!"
+      ACCEPT_EULA: "Y"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    restart: always
+
+  # 📦 Product Service
+  product-service:
+    build:
+      context: ./services/product_service
+    container_name: product-service
+    ports:
+      - "8000:8000"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    working_dir: /app
+    volumes:
+      - ./services/product_service:/app
+      - ./common:/app/common
+    environment:
+      PYTHONPATH: /app:/app/common
+      DATABASE_URL: mssql+pyodbc://sa:StrongPass123!@mssql-db:1433/AlluresDb?driver=ODBC+Driver+17+for+SQL+Server
+    depends_on:
+      - mssql-db
+    restart: always
+
+  # 📦 Sales Service
+  sales-service:
+    build:
+      context: ./services/sales_service
+    container_name: sales-service
+    ports:
+      - "8001:8000"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    working_dir: /app
+    volumes:
+      - ./services/sales_service:/app
+      - ./common:/app/common
+    environment:
+      PYTHONPATH: /app:/app/common
+      DATABASE_URL: mssql+pyodbc://sa:StrongPass123!@mssql-db:1433/AlluresDb?driver=ODBC+Driver+17+for+SQL+Server
+    depends_on:
+      - mssql-db
+    restart: always
+
+  # 📦 Review Service
+  review-service:
+    build:
+      context: ./services/review_service
+    container_name: review-service
+    ports:
+      - "8002:8000"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    working_dir: /app
+    volumes:
+      - ./services/review_service:/app
+      - ./common:/app/common
+    environment:
+      PYTHONPATH: /app:/app/common
+      DATABASE_URL: mssql+pyodbc://sa:StrongPass123!@mssql-db:1433/AlluresDb?driver=ODBC+Driver+17+for+SQL+Server
+    depends_on:
+      - mssql-db
+    restart: always
+
+volumes:
+  mssql-data:

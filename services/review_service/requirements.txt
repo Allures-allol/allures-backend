@@ -1,0 +1,17 @@
+fastapi==0.109.1
+pydantic==2.11.4
+pydantic-settings==2.9.1
+starlette==0.35.1
+
+uvicorn[standard]==0.22.0
+sqlalchemy==1.4.47
+
+requests==2.32.0
+httpx==0.27.0
+cryptography==44.0.1
+pyodbc
+python-dotenv
+
+nltk~=3.9.1
+sentiment~=0.0.1
+

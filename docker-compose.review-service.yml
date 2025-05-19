@@ -1,0 +1,19 @@
+
+services:
+  review_service:
+    build:
+      context: ./services/review_service
+      dockerfile: Dockerfile
+    container_name: review-service
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./services/review_service:/app
+      - ./common:/app/common
+    working_dir: /app
+    env_file:
+      - .env.review  # ⬅️ в корне проекта
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    depends_on:
+      - mssql-db
+    restart: always

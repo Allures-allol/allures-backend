@@ -1,0 +1,6 @@
+Allures&Allol Project
+Main author and maintainer: Alla P. email
+
+Team:
+- Backend: [Alla Pavlova]
+- Frontend: [Oleg Kovalskiy]

@@ -1,0 +1,11 @@
++++++++++++++
+Allures&Allol – Marketplace Backend
++++++++++++++
+
+Version 1.0.0 – Initial microservice-based release
+Date: 2025-05-17
+
+- Product microservice created
+- Sales microservice connected
+- MSSQL integration
+- Dockerized deployment

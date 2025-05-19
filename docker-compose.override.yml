@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  product_service:
+    env_file:
+      - .env.docker
+
+  sales_service:
+    env_file:
+      - .env.docker
+
+  review_service:
+    env_file:
+      - .env.docker

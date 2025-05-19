@@ -1,0 +1,19 @@
+
+services:
+  sales_service:
+    build:
+      context: ./services/sales_service
+      dockerfile: Dockerfile
+    container_name: sales-service
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./services/sales_service:/app
+      - ./common:/app/common
+    working_dir: /app
+    env_file:
+      - .env  # ⬅️ корне проекта
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    depends_on:
+      - mssql-db
+    restart: always

@@ -1,0 +1,38 @@
+# Игнор временных и служебных файлов
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+
+# Виртуальные окружения
+venv/
+.venv/
+
+# Документация
+docs/
+
+# Логи
+*.log
+logs/
+
+# Node / frontend
+node_modules/
+yarn.lock
+package-lock.json
+
+# Тесты
+tests/
+
+# Docker
+Dockerfile*
+.dockerignore
+.env.docker
+
+# Прочее
+*.swp
