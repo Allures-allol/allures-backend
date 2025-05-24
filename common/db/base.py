@@ -1,4 +1,4 @@
-# common_db/base.py
+# common/db/base.py
 from sqlalchemy.ext.declarative import declarative_base
 
 
