@@ -1,5 +1,4 @@
-# services/common/schemas/user.py
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import Optional
 
@@ -16,5 +15,12 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ForgotPassword(BaseModel):
+    email: EmailStr
+
+class ResetPassword(BaseModel):
+    email: EmailStr
+    new_password: str
 
 

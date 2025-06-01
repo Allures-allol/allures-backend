@@ -11,4 +11,5 @@ class Inventory(Base):
     category_name = Column(String, nullable=False)
     inventory_quantity = Column(Integer, nullable=False)
 
-    # product = relationship("Product", back_populates="inventory")
+    # Связь с Product
+    product = relationship("Product", back_populates="inventory", lazy="selectin")

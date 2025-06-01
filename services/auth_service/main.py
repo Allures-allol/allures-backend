@@ -9,15 +9,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from common.db.session import get_db
 from common.config.settings import settings
+
 from services.auth_service.utils.security import create_access_token
-from services.auth_service.schemas.user import UserCreate
-from services.auth_service.crud.user import authenticate_user, create_user
+from services.auth_service.schemas.user import UserOut, UserCreate, ForgotPassword, ResetPassword
+from services.auth_service.crud.user import get_all_users, authenticate_user, create_user, forgot_password, reset_password
+from typing import List
 
 load_dotenv()
 
 app = FastAPI(title="Authorization Service")
 
-# Настройка CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -35,6 +36,10 @@ app.add_middleware(
 def read_root():
     return {"message": "Authorization Service is running"}
 
+@app.get("/auth/users", response_model=List[UserOut])
+def list_users(db: Session = Depends(get_db)):
+    return get_all_users(db)
+
 @app.post("/auth/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = authenticate_user(db, form_data.username, form_data.password)
@@ -47,3 +52,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
     user = create_user(db, user_data)
     return user
+
+@app.post("/auth/forgot-password")
+def forgot(user_data: ForgotPassword, db: Session = Depends(get_db)):
+    return forgot_password(db, user_data.email)
+
+@app.post("/auth/reset-password")
+def reset(user_data: ResetPassword, db: Session = Depends(get_db)):
+    return reset_password(db, user_data.email, user_data.new_password)

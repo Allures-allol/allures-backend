@@ -1,5 +1,4 @@
 # services/review_service/api/controller.py
-
 from sqlalchemy.orm import Session
 from services.review_service.models.review import Review
 from services.review_service.models.recommendation import Recommendation

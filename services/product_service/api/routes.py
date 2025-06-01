@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+
 from sqlalchemy.exc import SQLAlchemyError
 from common.db.session import get_db
 from common.models.products import Product as ProductModel
@@ -9,7 +10,6 @@ from common.models.categories import Category
 from common.models.inventory import Inventory
 from services.product_service.api.schemas import (
     ProductCreate,
-    ProductUpdate,
     Product as ProductOut,
     InventoryCreate
 )
@@ -18,7 +18,7 @@ from common.custom_exceptions import ProductNotFoundException, ProductInventoryU
 router = APIRouter()
 
 @router.post("/products/", response_model=ProductOut)
-def create_product(product: ProductCreate, db: Session = Depends(get_db)):
+def create_product(product: ProductCreate, db: Session = Depends(get_db)):  # ✅ исправлено
     try:
         category = db.query(Category).filter_by(name=product.category_name).first()
         if not category:
@@ -48,22 +48,19 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     except Exception as e:
         return {"success": False, "message": f"An error occurred: {str(e)}"}
 
-
 @router.get("/products/", response_model=List[ProductOut])
-def get_all_products(db: Session = Depends(get_db)):
+def get_all_products(db: Session = Depends(get_db)):  # ✅ исправлено
     return db.query(ProductModel).all()
 
-
 @router.get("/products/{product_id}", response_model=ProductOut)
-def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
+def get_product_by_id(product_id: int, db: Session = Depends(get_db)):  # ✅ исправлено
     product = db.query(ProductModel).filter(ProductModel.id == product_id).first()
     if not product:
         raise ProductNotFoundException(f"Product with ID {product_id} not found")
     return product
 
-
 @router.put("/products/{product_id}", response_model=ProductOut)
-def update_product_attribute(product_id: int, updated_attributes: dict, db: Session = Depends(get_db)):
+def update_product_attribute(product_id: int, updated_attributes: dict, db: Session = Depends(get_db)):  # ✅ исправлено
     try:
         db_product = db.query(ProductModel).filter_by(id=product_id).first()
         if not db_product:
@@ -93,7 +90,6 @@ def update_product_attribute(product_id: int, updated_attributes: dict, db: Sess
         return {"success": False, "message": f"Database error: {str(e)}"}
     except Exception as e:
         return {"success": False, "message": f"An error occurred: {str(e)}"}
-
 
 def create_inventory(inventory: InventoryCreate, db: Session):
     db_inventory = Inventory(**inventory.dict())

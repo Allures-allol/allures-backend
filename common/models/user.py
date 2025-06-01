@@ -14,6 +14,7 @@ class User(Base):
     role = Column(String, default="user")
     is_blocked = Column(Boolean, default=False)
 
-    # Пример связей:
-    # uploads = relationship("Upload", back_populates="user")
-    # orders = relationship("Order", back_populates="user")
+    # Убираем циклический импорт: описываем связь без импорта Upload и Order
+    # uploads = relationship("Upload", back_populates="user", lazy="selectin")
+    # sales = relationship("Sales", back_populates="user", lazy="selectin")
+

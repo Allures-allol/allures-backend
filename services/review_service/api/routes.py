@@ -1,5 +1,4 @@
-# ✅ services/review_service/api/routes_review.py
-
+# ✅ services/review_service/api/routes.py
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
@@ -17,9 +16,9 @@ from services.review_service.logic.recommendation import (
     recommend_products,
     save_recommendations_to_db
 )
+from services.review_service.api.crud import get_all_reviews, create_review
 
 router = APIRouter()
-
 
 @router.post("/reviews/", response_model=ReviewOut)
 def add_review(review: ReviewCreate, db: Session = Depends(get_db)):
@@ -39,7 +38,6 @@ def get_all_reviews(db: Session = Depends(get_db)):
 @router.get("/recommendations/", response_model=List[RecommendationOut])
 def get_all_recommendations(db: Session = Depends(get_db)):
     return db.query(Recommendation).all()
-
 
 @router.post("/recommend/", response_model=List[ProductOut])
 def get_recommendations(data: QueryRequest, db: Session = Depends(get_db)):

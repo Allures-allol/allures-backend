@@ -1,9 +1,14 @@
+import os
 from common.config.settings import settings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 import time
 
-ALLURES_DB_URL = settings.ALLURES_DB_URL
+
+load_dotenv()
+
+ALLURES_DB_URL = settings.ALLURES_DB_URL  # или "LOCAL_DB_URL"
 
 MAX_RETRIES = 3
 RETRY_DELAY = 5

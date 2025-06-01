@@ -1,3 +1,4 @@
+# services/product_service/api/controller.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from common.db.session import get_db
@@ -12,7 +13,7 @@ router = APIRouter()
 
 # Создание нового продукта
 @router.post("/products/", response_model=Product)
-def create_product(product: ProductCreate, db: Session = Depends(get_db)):
+def create_product(product: ProductCreate, db: Session = Depends(get_db())):
     """
     Создание продукта.
     1. Проверка существования категории в базе данных.
@@ -104,7 +105,7 @@ def update_product_attribute(product_id: int, updated_attributes: dict, db: Sess
 
 # Получение продукта по ID
 @router.get("/products/{product_id}", response_model=Product)
-def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
+def get_product_by_id(product_id: int, db: Session = Depends(get_db())):
     """
     Получение продукта по ID
     """
@@ -118,7 +119,7 @@ def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
 
 # Получение всех продуктов
 @router.get("/products/", response_model=list[Product])
-def get_all_products(db: Session = Depends(get_db)):
+def get_all_products(db: Session = Depends(get_db())):
     """
     Получение всех продуктов.
     """
@@ -138,7 +139,7 @@ def create_inventory(inventory: InventoryCreate, db: Session):
 
 # Создание новой категории
 @router.post("/categories/", response_model=Category)
-def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
+def create_category(category: CategoryCreate, db: Session = Depends(get_db())):
     """
     Создание категории:
     - Проверка и валидация через Pydantic модель.
@@ -157,7 +158,7 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
 
 # Получение категории по имени
 @router.get("/categories/{category_name}", response_model=Category)
-def get_category_by_name(category_name: str, db: Session = Depends(get_db)):
+def get_category_by_name(category_name: str, db: Session = Depends(get_db())):
     """
     Получение категории по имени
     """
