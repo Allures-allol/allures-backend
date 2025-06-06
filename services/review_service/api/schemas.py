@@ -5,6 +5,8 @@ from common.models.products import Product as ProductModel
 from services.review_service.models.review import Review as ReviewModel
 from services.review_service.models.recommendation import Recommendation as RecommendationModel
 from pydantic import BaseModel
+from datetime import datetime, date, timedelta
+
 
 @strawberry.type
 class Product:
