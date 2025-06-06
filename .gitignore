@@ -111,7 +111,7 @@ __pydantic_main__.py
 # Custom project data/logs
 logs/
 data/
-common/db/mysqldb/
+#common/db/mysqldb/
 config.yml
 config.json
 
