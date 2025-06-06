@@ -26,7 +26,7 @@ class Product:
     current_inventory: int
 
 @strawberry.type
-class Review:
+class ReviewOut:
     id: int
     product_id: int
     user_id: int
