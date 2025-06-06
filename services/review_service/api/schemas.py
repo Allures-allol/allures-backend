@@ -37,6 +37,17 @@ class ReviewOut:
     created_at: str
 
 @strawberry.type
+class Review:
+    id: int
+    product_id: int
+    user_id: int
+    text: str
+    sentiment: str
+    pos_score: float
+    neg_score: float
+    created_at: str
+
+@strawberry.type
 class Recommendation:
     id: int
     user_id: int
