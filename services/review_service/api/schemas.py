@@ -7,6 +7,10 @@ from services.review_service.models.recommendation import Recommendation as Reco
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
 
+@strawberry.type
+class ReviewCreate(BaseModel):
+    title: str
+    content: str
 
 @strawberry.type
 class Product:
