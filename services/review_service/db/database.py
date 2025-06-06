@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from services.review_service.common.config.settings_review import settings_review
 
 # Строка подключения — локально (Windows Auth)
-SQLALCHEMY_DATABASE_URL = settings_review.LOCAL_DB_URL
+SQLALCHEMY_DATABASE_URL = settings_review.ALLURES_DB_URL #Change to LOCAL_DB_URL after
 
 # Создание движка SQLAlchemy
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
