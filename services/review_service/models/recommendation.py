@@ -2,7 +2,7 @@
 
 from sqlalchemy import Column, Integer, Float, DateTime
 from sqlalchemy.sql import func
-from services.review_service.db.database import Base
+from common.db.base import Base
 
 class Recommendation(Base):
     __tablename__ = "recommendations"
