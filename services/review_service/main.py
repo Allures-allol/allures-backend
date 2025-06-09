@@ -39,3 +39,5 @@ app.include_router(router, prefix="/reviews", tags=["Reviews"])
 @app.get("/")
 def root():
     return {"message": "Review Service is running"}
+
+# uvicorn services.review_service.main:app --reload --port 8002

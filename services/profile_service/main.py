@@ -35,3 +35,7 @@ app.add_middleware(
 @app.get("/")
 def read_root():
     return {"message": "Profile Service is running"}
+
+
+
+# uvicorn services.profile_service.main:app --reload --port 8004

@@ -1,10 +1,14 @@
 # common/db/product_connection.py
-
+import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-ALLURES_DB_URL = "mssql+pyodbc://localhost,1433/AlluresDb?driver=ODBC%20Driver%2017%20for%20SQL%20Server&;Trusted_Connection=yes"
+load_dotenv()
 
-engine = create_engine(ALLURES_DB_URL)
-ProductSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+MAINDB_URL = os.getenv("MAINDB_URL")
+if MAINDB_URL is None:
+    raise ValueError("❌ MAINDB_URL не найден")
 
+engine = create_engine(MAINDB_URL, echo=True)
+ProductSessionLocal = sessionmaker(bind=engine)

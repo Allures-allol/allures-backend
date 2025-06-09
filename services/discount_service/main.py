@@ -36,5 +36,4 @@ app.add_middleware(
 def read_root():
     return {"message": "Discount Service is running"}
 
-
 # uvicorn services.discount_service.main:app --reload --port 8006

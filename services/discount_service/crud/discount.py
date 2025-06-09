@@ -12,4 +12,4 @@ def create_discount(db, data):
 
 
 def get_valid_discounts(db):
-    return db.query(Discount).filter(Discount.expires_at > datetime.utcnow()).all()
+    return db.query(Discount).filter(Discount.valid_until > datetime.utcnow()).all()

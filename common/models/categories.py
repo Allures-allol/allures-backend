@@ -7,9 +7,7 @@ class Category(Base):
     __tablename__ = "categories"
 
     category_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(50), nullable=False, unique=True, index=True)
-    description = Column(String(255), nullable=True)
+    name = Column(String(50), unique=True, nullable=False)
+    description = Column(String(255))
 
-    # Lazy позволяет избежать загрузки связей сразу
-    products = relationship("Product", back_populates="category", lazy="selectin")
-    sales = relationship("Sales", back_populates="category", lazy="selectin")
+    products = relationship("Product", back_populates="category")

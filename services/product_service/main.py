@@ -5,20 +5,21 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from fastapi import FastAPI
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
-from api.routes import router as product_router
 from common.db.session import get_db
-
 from sqlalchemy import text
 from common.config.settings import settings
+
+# from graphql_app.schema import schema as review_schema
 from strawberry.fastapi import GraphQLRouter
+
 from services.product_service.api.routes import router as product_router
 from services.review_service.api.routes import router as review_router
-from graphql_app.schema import schema as review_schema
+
 
 # Загрузка переменных окружения
 load_dotenv()
 
-app = FastAPI(title="Allures Backend")
+app = FastAPI(title="Product Service")
 
 # Подключаем REST маршруты
 app.include_router(product_router, prefix="/products", tags=["products"])
@@ -51,11 +52,13 @@ def startup_event():
     finally:
         db.close()
 
-print("✅ ALLURES_DB_URL:", settings.ALLURES_DB_URL)
+print("✅ MAINDB_URL:", settings.MAINDB_URL)
 
-graphql_app = GraphQLRouter(review_schema)
-app.include_router(graphql_app, prefix="/graphql_app")
+# graphql_app = GraphQLRouter(review_schema)
+# app.include_router(graphql_app, prefix="/graphql_app")
 
 @app.get("/")
 def root():
-    return {"message": "Hello from Allures Backend (REST + Strawberry)"}
+    return {"message": "Product Service is running)"}
+
+# uvicorn services.product_service.main:app --reload --port 8000

@@ -5,10 +5,9 @@ from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import time
 
-
 load_dotenv()
 
-ALLURES_DB_URL = settings.ALLURES_DB_URL  # или "LOCAL_DB_URL"
+MAINDB_URL = settings.MAINDB_URL  # или "LOCAL_DB_URL"
 
 MAX_RETRIES = 3
 RETRY_DELAY = 5
@@ -16,7 +15,7 @@ RETRY_DELAY = 5
 def create_database_engine_with_retries():
     for attempt in range(MAX_RETRIES):
         try:
-            engine = create_engine(ALLURES_DB_URL, echo=True)
+            engine = create_engine(MAINDB_URL, echo=True)
             return engine
         except Exception as e:
             print(f"[{attempt + 1}/{MAX_RETRIES}] Ошибка подключения: {e}")
