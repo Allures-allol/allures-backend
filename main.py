@@ -1,16 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 from common.db.session import get_db
-from strawberry.fastapi import GraphQLRouter
-from graphql_app.schema import schema
+
 from services.product_service.api.routes import router as product_router
 from services.review_service.api.routes import router as review_router
 
 load_dotenv()
+
 app = FastAPI(title="Allures Backend")
 
 app.include_router(product_router, prefix="/products", tags=["products"])
@@ -36,9 +33,6 @@ def startup_event():
     finally:
         db.close()
 
-graphql_app = GraphQLRouter(schema)
-app.include_router(graphql_app, prefix="/graphql_app")
-
 @app.get("/")
 def root():
-    return {"message": "Hello from Allures Backend (REST + GraphQL)"}
+    return {"message": "Hello from Allures Backend"}
