@@ -1,7 +1,7 @@
 # services/review_service/models/product_proxy.py
 
 from sqlalchemy import Column, Integer, String, Float, DateTime
-from services.review_service.db.database import Base
+from common.db.base import Base
 
 class ProductDb(Base):
     __tablename__ = "products"
