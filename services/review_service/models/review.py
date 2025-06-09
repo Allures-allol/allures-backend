@@ -1,7 +1,8 @@
 # services/review_service/models/review.py
 from sqlalchemy import Column, Integer, String, Float, DateTime
 from datetime import datetime
-from common.db.base import Base  # Используем общую базу
+from common.db.base import Base
+
 
 class Review(Base):
     __tablename__ = "reviews"
