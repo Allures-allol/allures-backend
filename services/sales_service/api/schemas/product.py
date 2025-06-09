@@ -10,7 +10,7 @@ class ProductBase(BaseModel):
     description: str
     price: float
     image: Optional[str] = None
-    category_name: ProductCategory
+    category_id: ProductCategory
     current_inventory: int
 
 # Создание продукта
@@ -39,5 +39,5 @@ class Product(ProductBase):
 # Модель для инвентаря (если нужно)
 class InventoryCreate(BaseModel):
     product_id: int
-    category_name: str
+    category_id: str
     inventory_quantity: int

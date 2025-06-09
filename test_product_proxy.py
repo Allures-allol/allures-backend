@@ -1,5 +1,4 @@
 # services/product_service/test_product_proxy.py
-
 import sys
 import os
 from sqlalchemy.orm import Session

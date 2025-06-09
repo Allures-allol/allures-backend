@@ -30,7 +30,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # Главная страница
 @app.get("/")
 def root():
@@ -50,3 +49,4 @@ def startup_event():
         db.close()
 
 
+# uvicorn services.sales_service.main:app --reload --port 8001

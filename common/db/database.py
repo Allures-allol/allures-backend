@@ -3,10 +3,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
 
-# Чтение строки подключения из .env.review
-ALLURES_DB_URL = os.getenv("ALLURES_DB_URL")
+MAINDB_URL = os.getenv("MAINDB_URL")
 
-engine = create_engine(ALLURES_DB_URL, echo=True)
+engine = create_engine(MAINDB_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_db():

@@ -4,3 +4,6 @@ Main author and maintainer: Alla P. email
 Team:
 - Backend: [Alla Pavlova]
 - Frontend: [Oleg Kovalskiy]
+- System admin: [Denis Lisyansky]
+- Design: [Bozhko Vasilisa, Makhota Evelina]
+

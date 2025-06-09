@@ -2,6 +2,7 @@ from enum import Enum
 
 class ProductCategory(str, Enum):
     electronics = "electronics"
+    bags = "bags"
     fashion = "fashion"
     personal_care = "personal_care"
     toys = "toys"

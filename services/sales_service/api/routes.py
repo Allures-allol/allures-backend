@@ -9,6 +9,7 @@ from services.sales_service.api.schemas.sales import (
     SalesOut,
     SalesRequestParams,
     SalesStats,
+    SalesCreate,
 )
 from services.sales_service.api.schemas.product import (
     Product as ProductOut,
@@ -19,7 +20,8 @@ from common.custom_exceptions import (
     ProductNotFoundException,
     NoSalesDataFoundException,
 )
-from services.sales_service.api.controller import fetch_sales
+from services.sales_service.api.controller import fetch_sales, create_product_sale_transaction
+
 import traceback
 
 router = APIRouter()
@@ -54,16 +56,33 @@ def update_product(product_id: int, updated: ProductUpdate, db: Session = Depend
 # ✅ Получение всех продаж
 @router.get("/sales/", response_model=List[SalesOut])
 def get_all_sales(db: Session = Depends(get_db)):
-    return db.query(Sales).all()
+    try:
+        sales = db.query(Sales).all()
+        if not sales:
+            raise NoSalesDataFoundException("No sales found")
+        return sales
+    except Exception:
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
-# ✅ Получение продаж по параметрам
+# ✅ Создание продажи с user_id
+@router.post("/sales/", response_model=SalesOut, status_code=status.HTTP_201_CREATED)
+def create_sale(sale: SalesCreate, db: Session = Depends(get_db)):
+    try:
+        return create_product_sale_transaction(sale.dict(), db)
+    except Exception:
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Failed to create sale")
+
+# ✅ Получение статистики продаж по параметрам, включая user_id
 @router.post("/retrieve_sales", summary="Get sales for product", response_model=List[SalesStats])
 def get_sales_for_product(params: SalesRequestParams, db: Session = Depends(get_db)):
     try:
         sales_data = fetch_sales(
             db,
             product_id=params.product_id,
-            category=params.category,
+            category_id=params.category_id,
+            user_id=params.user_id,  # 🔹 Добавлена поддержка user_id
             start_date=params.start_date,
             end_date=params.end_date,
             group_by=params.group_by,
@@ -76,6 +95,6 @@ def get_sales_for_product(params: SalesRequestParams, db: Session = Depends(get_
         raise HTTPException(status_code=404, detail=str(error))
     except NoSalesDataFoundException as error:
         raise HTTPException(status_code=404, detail=str(error))
-    except Exception as e:
+    except Exception:
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal Server Error")

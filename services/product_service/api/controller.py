@@ -22,9 +22,9 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db())):
     """
     try:
         # Проверка на существование категории
-        category = db.query(Category).filter_by(name=product.category_name).first()
+        category = db.query(Category).filter_by(name=product.category_id).first()
         if not category:
-            raise HTTPException(status_code=404, detail=f"Category '{product.category_name}' not found")
+            raise HTTPException(status_code=404, detail=f"Category '{product.category_id}' not found")
 
         # Создание нового продукта
         db_product = Product(**product.dict())
@@ -34,7 +34,7 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db())):
 
         # Создание инвентаря для нового продукта
         inventory_data = InventoryCreate(
-            category_name=db_product.category_name,
+            category_id=db_product.category_name,
             product_id=db_product.id,
             inventory_quantity=db_product.current_inventory,
         )
@@ -75,7 +75,7 @@ def update_product_attribute(product_id: int, updated_attributes: dict, db: Sess
             if "current_inventory" in updated_attributes:
                 inventory_data = InventoryCreate(
                     product_id=product_id,
-                    category_name=db_product.category_name,
+                    category_id=db_product.category_name,
                     inventory_quantity=updated_attributes["current_inventory"],
                 )
                 try:
@@ -157,12 +157,12 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db())):
         raise HTTPException(status_code=500, detail=f"Database error: {error_message}")
 
 # Получение категории по имени
-@router.get("/categories/{category_name}", response_model=Category)
-def get_category_by_name(category_name: str, db: Session = Depends(get_db())):
+@router.get("/categories/{category_id}", response_model=Category)
+def get_category_by_id(category_id: str, db: Session = Depends(get_db())):
     """
     Получение категории по имени
     """
-    category = db.query(Category).filter(Category.name == category_name).first()
+    category = db.query(Category).filter(Category.id == category_id).first()
     if category is None:
-        raise HTTPException(status_code=404, detail=f"Category '{category_name}' not found")
+        raise HTTPException(status_code=404, detail=f"Category '{category_id}' not found")
     return category

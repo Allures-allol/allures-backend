@@ -9,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from common.db.session import get_db
 from sqlalchemy import text
 from common.config.settings import settings
+from services.payment_service.common.config.settings_payment import settings_payment
+from services.payment_service.routers.payment import router as payment_router
 from routers import payment
 
 load_dotenv()

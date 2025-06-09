@@ -1,11 +1,13 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-
-    ALLURES_DB_URL: str
+    NOWPAYMENTS_API_KEY: str
+    NGROK_WEBHOOK_URL: str = ""
+    MAINDB_URL: str
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "allow"
 
 settings = Settings()
