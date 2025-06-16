@@ -1,3 +1,4 @@
+# services/sales_service/api/schemas/sales.py
 from pydantic import BaseModel, field_validator
 from common.enums.product_enums import ProductCategory
 from datetime import datetime
@@ -9,14 +10,6 @@ class SalesBase(BaseModel):
     category_id: int
     units_sold: int = 0
 
-    @field_validator("category_id", mode="before")
-    @classmethod
-    def validate_category(cls, value):
-        valid_values = [item.value for item in ProductCategory]
-        if value not in valid_values:
-            raise ValueError("Invalid category")
-        return value
-
 # Для создания новой продажи
 class SalesCreate(SalesBase):
     pass
@@ -25,12 +18,12 @@ class SalesCreate(SalesBase):
 class SalesOut(BaseModel):
     id: int
     product_id: int
+    user_id: int
     category_id: int
-    user_id: Optional[int]  # ✅ добавлено
-    units_sold: int
+    quantity: int
     sold_at: datetime
     total_price: float
-    revenue: Optional[float]
+    revenue: Optional[float] = None
 
     class Config:
         from_attributes = True

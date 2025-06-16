@@ -1,4 +1,4 @@
-# services/sales_service/api/schemas.py
+# services/sales_service/api/schemas/product.py
 from pydantic import BaseModel
 from common.enums.product_enums import ProductCategory
 from typing import Optional
@@ -10,12 +10,17 @@ class ProductBase(BaseModel):
     description: str
     price: float
     image: Optional[str] = None
-    category_id: ProductCategory
+    category_id: int
     current_inventory: int
 
 # Создание продукта
-class ProductCreate(ProductBase):
-    pass
+class ProductCreate(BaseModel):
+    name: str
+    description: str
+    price: float
+    image: Optional[str]
+    category_id: ProductCategory  # Тут можно оставить enum
+    current_inventory: int
 
 # Обновление продукта
 class ProductUpdate(BaseModel):
@@ -39,5 +44,5 @@ class Product(ProductBase):
 # Модель для инвентаря (если нужно)
 class InventoryCreate(BaseModel):
     product_id: int
-    category_id: str
+    category_id: int
     inventory_quantity: int

@@ -76,3 +76,7 @@ def get_recommendations(data: QueryRequest, db: Session = Depends(get_db)):
         )
         for p, _ in recommendations
     ]
+
+@router.get("/reviews/user/{user_id}", response_model=List[ReviewOut])
+def get_reviews_by_user(user_id: int, db: Session = Depends(get_db)):
+    return db.query(Review).filter(Review.user_id == user_id).all()
