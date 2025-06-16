@@ -1,24 +1,23 @@
-#version: "3.9"
+version: "3.9"
 
 services:
-  # 📦 MS SQL Server
   mssql-db:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: mssql-db
     ports:
       - "1433:1433"
     environment:
-      SA_PASSWORD: "StrongPass123!"
+      SA_PASSWORD: "${SA_PASSWORD}"
       ACCEPT_EULA: "Y"
+      MSSQL_PID: "Express"
     volumes:
       - mssql-data:/var/opt/mssql
     restart: always
 
-  # 📦 Product Service
-  product-service:
+  product_service:
     build:
       context: ./services/product_service
-    container_name: product-service
+    container_name: product_service
     ports:
       - "8000:8000"
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
@@ -26,18 +25,17 @@ services:
     volumes:
       - ./services/product_service:/app
       - ./common:/app/common
+    env_file: [.env]
     environment:
       PYTHONPATH: /app:/app/common
-      DATABASE_URL: mssql+pyodbc://sa:StrongPass123!@mssql-db:1433/AlluresDb?driver=ODBC+Driver+17+for+SQL+Server
-    depends_on:
-      - mssql-db
+      MAINDB_URL: "${MAINDB_URL}"
+    depends_on: [mssql-db]
     restart: always
 
-  # 📦 Sales Service
-  sales-service:
+  sales_service:
     build:
       context: ./services/sales_service
-    container_name: sales-service
+    container_name: sales_service
     ports:
       - "8001:8000"
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
@@ -45,18 +43,17 @@ services:
     volumes:
       - ./services/sales_service:/app
       - ./common:/app/common
+    env_file: [.env]
     environment:
       PYTHONPATH: /app:/app/common
-      DATABASE_URL: mssql+pyodbc://sa:StrongPass123!@mssql-db:1433/AlluresDb?driver=ODBC+Driver+17+for+SQL+Server
-    depends_on:
-      - mssql-db
+      MAINDB_URL: "${MAINDB_URL}"
+    depends_on: [mssql-db]
     restart: always
 
-  # 📦 Review Service
-  review-service:
+  review_service:
     build:
       context: ./services/review_service
-    container_name: review-service
+    container_name: review_service
     ports:
       - "8002:8000"
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
@@ -64,12 +61,115 @@ services:
     volumes:
       - ./services/review_service:/app
       - ./common:/app/common
+    env_file: [.env]
     environment:
       PYTHONPATH: /app:/app/common
-      DATABASE_URL: mssql+pyodbc://sa:StrongPass123!@mssql-db:1433/AlluresDb?driver=ODBC+Driver+17+for+SQL+Server
+      MAINDB_URL: "${MAINDB_URL}"
+    depends_on: [mssql-db]
+    restart: always
+
+  auth_service:
+    build:
+      context: ./services/auth_service
+    container_name: auth_service
+    ports:
+      - "8003:8000"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    working_dir: /app
+    volumes:
+      - ./services/auth_service:/app
+      - ./common:/app/common
+    env_file: [.env]
+    environment:
+      PYTHONPATH: /app:/app/common
+      MAINDB_URL: "${MAINDB_URL}"
+    depends_on: [mssql-db]
+    restart: always
+
+  profile_service:
+    build:
+      context: ./services/profile_service
+    container_name: profile_service
+    ports:
+      - "8004:8000"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    working_dir: /app
+    volumes:
+      - ./services/profile_service:/app
+      - ./common:/app/common
+    env_file: [.env]
+    environment:
+      PYTHONPATH: /app:/app/common
+      MAINDB_URL: "${MAINDB_URL}"
+    depends_on: [mssql-db]
+    restart: always
+
+  payment_service:
+    build:
+      context: ./services/payment_service
+    container_name: payment_service
+    ports:
+      - "8005:8000"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    working_dir: /app
+    volumes:
+      - ./services/payment_service:/app
+      - ./common:/app/common
+    env_file: [.env]
+    environment:
+      PYTHONPATH: /app:/app/common
+      MAINDB_URL: "${MAINDB_URL}"
+    depends_on: [mssql-db]
+    restart: always
+
+  discount_service:
+    build:
+      context: ./services/discount_service
+    container_name: discount_service
+    ports:
+      - "8006:8000"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    working_dir: /app
+    volumes:
+      - ./services/discount_service:/app
+      - ./common:/app/common
+    env_file: [.env]
+    environment:
+      PYTHONPATH: /app:/app/common
+      MAINDB_URL: "${MAINDB_URL}"
+    depends_on: [mssql-db]
+    restart: always
+
+  dashboard_service:
+    build:
+      context: ./services/dashboard_service
+    container_name: dashboard_service
+    ports:
+      - "8007:8000"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    working_dir: /app
+    volumes:
+      - ./services/dashboard_service:/app
+      - ./common:/app/common
+    env_file: [.env]
+    environment:
+      PYTHONPATH: /app:/app/common
+      PRODUCT_SERVICE_URL: http://product_service:8000
+      SALES_SERVICE_URL: http://sales_service:8000
+      REVIEW_SERVICE_URL: http://review_service:8000
+      AUTH_SERVICE_URL: http://auth_service:8000
+      PROFILE_SERVICE_URL: http://profile_service:8000
+      PAYMENTS_SERVICE_URL: http://payment_service:8000
+      DISCOUNT_SERVICE_URL: http://discount_service:8000
     depends_on:
-      - mssql-db
+      - product_service
+      - sales_service
+      - review_service
+      - auth_service
+      - profile_service
+      - payment_service
+      - discount_service
     restart: always
 
 volumes:
-  mssql-data:
+  mssql-data: {}

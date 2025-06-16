@@ -1,14 +1,14 @@
 # common/db/product_connection.py
-import os
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from services.review_service.common.config.settings_review import settings_review  # путь до настроек
 
-load_dotenv()
-
-MAINDB_URL = os.getenv("MAINDB_URL")
-if MAINDB_URL is None:
-    raise ValueError("❌ MAINDB_URL не найден")
-
-engine = create_engine(MAINDB_URL, echo=True)
+engine = create_engine(settings_review.MAINDB_URL, echo=True)
 ProductSessionLocal = sessionmaker(bind=engine)
+
+def get_product_db():
+    db = ProductSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

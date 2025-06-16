@@ -1,5 +1,4 @@
-# ✅ services/review_service/models/recommendation.py
-
+# services/review_service/models/recommendation.py
 from sqlalchemy import Column, Integer, Float, DateTime
 from sqlalchemy.sql import func
 from common.db.base import Base
