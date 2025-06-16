@@ -10,10 +10,9 @@ class Sales(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey("products.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
     category_id = Column(Integer, ForeignKey("categories.category_id"))
-
-    units_sold = Column(Integer, default=0, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    quantity = Column(Integer, default=0, nullable=False)  # 🔁 было units_sold
     sold_at = Column(DateTime, default=datetime.datetime.utcnow)
     total_price = Column(Float, nullable=False)
     revenue = Column(Float, nullable=True)

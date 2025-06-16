@@ -8,7 +8,7 @@ from common.models.categories import Category
 
 class Product(Base):
     __tablename__ = "products"
-
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, index=True)
     category_id = Column(Integer, ForeignKey("categories.category_id"), nullable=False)
     name = Column(String(60), nullable=False)

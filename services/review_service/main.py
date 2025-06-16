@@ -1,19 +1,14 @@
 # ✅ services/review_service/main.py
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from services.review_service.db.database import init_db
+from common.db.base import Base
 from services.review_service.api.routes import router
-#import nltk
+from services.review_service.db.database import engine  # нужен для bind в create_all
+from services.review_service.models import review, recommendation  # 👈 обязательно, чтобы таблицы создались
 
-# 📦 Загрузка NLTK ресурсов
-#nltk.download('punkt')
-#nltk.download('wordnet')
-
-# 🚀 Инициализация FastAPI
 app = FastAPI(title="Review Service")
 
-# 🔓 CORS — разрешенные источники
+# 🔓 Разрешённые домены
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -30,12 +25,12 @@ app.add_middleware(
 # 🛠️ Создание таблиц при старте
 @app.on_event("startup")
 def on_startup():
-    init_db()
+    Base.metadata.create_all(bind=engine)
 
-# 🔗 Подключение маршрутов
+# 🔗 Роуты
 app.include_router(router, prefix="/reviews", tags=["Reviews"])
 
-# 🌐 Корневой маршрут
+# 🌐 Корень
 @app.get("/")
 def root():
     return {"message": "Review Service is running"}

@@ -98,3 +98,7 @@ def get_sales_for_product(params: SalesRequestParams, db: Session = Depends(get_
     except Exception:
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@router.get("/sales/user/{user_id}", response_model=List[SalesOut])
+def get_sales_by_user(user_id: int, db: Session = Depends(get_db)):
+    return db.query(Sales).filter(Sales.user_id == user_id).all()

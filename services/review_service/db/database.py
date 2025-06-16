@@ -1,10 +1,9 @@
+# services/review_service/db/database.py
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import os
+from services.review_service.common.config.settings_review import settings_review
 
-MAINDB_URL = os.getenv("MAINDB_URL")
-
-engine = create_engine(MAINDB_URL, echo=True)
+engine = create_engine(settings_review.MAINDB_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_db():
@@ -13,4 +12,3 @@ def get_db():
         yield db
     finally:
         db.close()
-

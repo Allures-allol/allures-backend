@@ -30,18 +30,16 @@ class ReviewOut(BaseModel):
     class Config:
         from_attributes = True
 
-
 # === Рекомендации ===
 class RecommendationOut(BaseModel):
     id: int
     user_id: int
     product_id: int
     score: float
-    recommended_at: datetime
+    recommended_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
-
 
 # === Поисковый запрос и вывод ===
 class QueryRequest(BaseModel):
