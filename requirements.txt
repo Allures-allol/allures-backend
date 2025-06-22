@@ -5,8 +5,7 @@ starlette==0.35.1
 
 # SQL и ORM
 sqlalchemy==1.4.47
-pymssql
-pyodbc~=5.2.0
+psycopg2-binary==2.9.9
 
 # Настройки и валидация
 pydantic==2.11.4

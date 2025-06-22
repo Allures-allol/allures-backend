@@ -1,13 +1,14 @@
+# common/db/session.py
 import os
-from common.config.settings import settings
+import time
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
-import time
+from common.config.settings import settings
 
 load_dotenv()
 
-MAINDB_URL = settings.MAINDB_URL  # или "LOCAL_DB_URL"
+MAINDB_URL = settings.MAINDB_URL
 
 MAX_RETRIES = 3
 RETRY_DELAY = 5
@@ -34,4 +35,5 @@ def get_db():
         yield db
     finally:
         db.close()
+
 
