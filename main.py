@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -36,7 +35,6 @@ def startup_event():
 
 @app.get("/")
 def root():
-=======
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -76,13 +74,12 @@ def startup_event():
     db = next(db_gen)
     try:
         db.execute("SELECT 1")
-        print("✅ MSSQL подключение успешно (AlluresDb)")
+        print("✅ PostgrSQL подключение успешно (AlluresDb)")
     except Exception as e:
-        print(f"❌ Ошибка подключения к MSSQL: {e}")
+        print(f"❌ Ошибка подключения к PostgreSQL: {e}")
     finally:
         db.close()
 
 @app.get("/")
 def root():
->>>>>>> fc37c4c (🔄 Update: connect to MAINDB, refactor reviews, add global main.py)
     return {"message": "Hello from Allures Backend"}
