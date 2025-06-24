@@ -5,7 +5,7 @@ starlette==0.35.1
 
 # SQL и ORM
 sqlalchemy==1.4.47
-pymssql
+psycopg2-binary		# For postgreSql
 pyodbc~=5.2.0
 
 # Настройки и валидация
