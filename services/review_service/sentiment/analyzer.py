@@ -2,9 +2,17 @@ import difflib
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 import nltk
+import os
 
-nltk.download('punkt')
-nltk.download('wordnet')
+nltk_data_path = os.path.join(os.path.dirname(__file__), "nltk_data")
+if not os.path.exists(nltk_data_path):
+    os.makedirs(nltk_data_path, exist_ok=True)
+
+nltk.download('punkt', download_dir=nltk_data_path)
+nltk.download('wordnet', download_dir=nltk_data_path)
+
+nltk.data.path.append(nltk_data_path)
+
 
 lemmatizer = WordNetLemmatizer()
 
