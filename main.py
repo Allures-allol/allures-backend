@@ -34,7 +34,6 @@ def startup_event():
         db.close()
 
 @app.get("/")
-def root():
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -50,7 +49,8 @@ from services.auth_service.routers.auth import router as auth_router
 load_dotenv()
 
 app = FastAPI(title="Allures Backend")
-
+def root():
+	pass
 # Подключение всех роутеров
 app.include_router(product_router, prefix="/products", tags=["products"])
 app.include_router(review_router, prefix="/reviews", tags=["reviews"])
