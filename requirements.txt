@@ -9,7 +9,7 @@ psycopg2-binary		# For postgreSql
 pyodbc~=5.2.0
 
 # Настройки и валидация
-pydantic==2.11.4
+pydantic[email]
 pydantic-settings==2.9.1
 python-dotenv~=1.1.0
 
