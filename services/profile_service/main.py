@@ -1,4 +1,9 @@
 #main.py profile_service
+import sys
+import os
+# Добавление корневого пути (чтобы импортировать общие модули)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))  # доступ к /services и /common
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text

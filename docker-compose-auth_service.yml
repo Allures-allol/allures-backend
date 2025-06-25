@@ -1,25 +1,24 @@
+version: "3.9"
 
 services:
-  review_service:
+  auth_service:
     build:
-      context: ./services/review_service
+      context: ./services/auth_service
       dockerfile: Dockerfile
-    container_name: review-service
+    container_name: auth-service
     ports:
-      - "8002:8000"
+      - "8003:8000"
     volumes:
-      - ./services/review_service:/app
+      - ./services/auth_service:/app
       - ./common:/app/common
     working_dir: /app
     env_file:
-      - .env
-    environment:
-      PYTHONPATH: /app:/app/common
-      MAINDB_URL: ${MAINDB_URL}
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+      - ./services/auth_service/.env
     depends_on:
       - postgres-db
-    restart: always
+    environment:
+      PYTHONPATH: /app:/app/common
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
   postgres-db:
     image: postgres:17
@@ -29,7 +28,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     env_file:
-      - .env
+      - ./services/auth_service/.env
     restart: always
 
 volumes:

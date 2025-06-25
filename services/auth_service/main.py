@@ -1,4 +1,9 @@
 #services/auth_service/main.py
+import sys
+import os
+# Добавление корневого пути (чтобы импортировать общие модули)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))  # доступ к /services и /common
+
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session

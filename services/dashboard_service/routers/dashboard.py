@@ -80,6 +80,10 @@ async def get_all_recommendations():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Помилка при отриманні рекомендацій: {str(e)}")
 
+@router.get("/stats")
+def get_dashboard_stats():
+    return {"status": "ok"}
+
 @router.get("/{user_id}", response_model=DashboardOut)
 async def get_dashboard(user_id: int, request: Request, db: Session = Depends(get_db)):
     save_dashboard_log(db, user_id, request.headers.get("user-agent"))
@@ -109,3 +113,4 @@ async def get_dashboard(user_id: int, request: Request, db: Session = Depends(ge
         raise HTTPException(status_code=404, detail="Користувача не знайдено")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Невідома помилка: {str(e)}")
+

@@ -1,12 +1,12 @@
 import sys
 import os
+# Добавление корневого пути (чтобы импортировать общие модули)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))  # доступ к /services и /common
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from dotenv import load_dotenv
-
-# Добавление корневого пути (чтобы импортировать общие модули)
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 from services.sales_service.api.routes import router as sales_router
 from common.db.session import get_db
@@ -51,3 +51,5 @@ def startup_event():
         print(f"❌ Ошибка подключения к PostgreSQL: {e}")
     finally:
         db.close()
+
+# uvicorn services.sales_service.main:app --reload --port 8001

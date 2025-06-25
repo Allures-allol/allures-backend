@@ -4,6 +4,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 
 class Settings(BaseSettings):
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB: str
+
     # 🔐 API ключи
     NOWPAYMENTS_API_KEY: str = Field(..., alias="NOWPAYMENTS_API_KEY")
     NGROK_WEBHOOK_URL: str = Field(..., alias="NGROK_WEBHOOK_URL")
@@ -24,8 +28,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.env")),
         env_file_encoding="utf-8",
-        extra="forbid" # запрет лишних переменных
+        extra="allow"
     )
-
 
 settings = Settings()
