@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+__init__.pyc
 
 # C extensions
 *.so
@@ -118,3 +119,5 @@ config.json
 # Docs
 docs/
 site/
+
+.DS_Store

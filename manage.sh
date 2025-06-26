@@ -2,11 +2,17 @@
 
 # Compose files
 DB_COMPOSE_FILE="docker-compose-db.yml"
-APP_COMPOSE_FILE="docker-compose-product-service.yml"
+PRODUCT_COMPOSE_FILE="docker-compose-product-service.yml"
 SALES_COMPOSE_FILE="docker-compose-sales-service.yml"
-REVIEW_COMPOSE_FILE="docker-compose-review-service.yml"  # Добавлен файл для отзывов
+REVIEW_COMPOSE_FILE="docker-compose-review-service.yml"
+PROFILE_COMPOSE_FILE="docker-compose-profile_service.yml"
+DASHBOARD_COMPOSE_FILE="docker-compose-dashboard_service.yml"
+DISCOUNT_COMPOSE_FILE="docker-compose-discount_service.yml"
+PAYMENT_COMPOSE_FILE="docker-compose-payment_service.yml"
 
-ALL_FILES="-f $DB_COMPOSE_FILE -f $APP_COMPOSE_FILE -f $SALES_COMPOSE_FILE -f $REVIEW_COMPOSE_FILE"  # Добавлен в список всех файлов
+ALL_FILES="-f $DB_COMPOSE_FILE -f $PRODUCT_COMPOSE_FILE -f $SALES_COMPOSE_FILE -f $REVIEW_COMPOSE_FILE \
+-f $PROFILE_COMPOSE_FILE -f $DASHBOARD_COMPOSE_FILE -f $DISCOUNT_COMPOSE_FILE -f $PAYMENT_COMPOSE_FILE"
+
 
 # Load .env.review.db files from each service
 load_envs() {
@@ -42,7 +48,7 @@ run_single() {
   SERVICE=$1
   case "$SERVICE" in
     product-service)
-      docker compose -f $APP_COMPOSE_FILE up -d --build
+      docker compose -f $PRODUCT_COMPOSE_FILE up -d --build
       ;;
     sales-service)
       docker compose -f $SALES_COMPOSE_FILE up -d --build
@@ -50,7 +56,7 @@ run_single() {
     db)
       docker compose -f $DB_COMPOSE_FILE up -d --build
       ;;
-    review-service)  # Добавлен сервис отзывов
+    review-service)
       docker compose -f $REVIEW_COMPOSE_FILE up -d --build
       ;;
     *)

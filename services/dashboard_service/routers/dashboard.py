@@ -26,12 +26,15 @@ def save_dashboard_log(db: Session, user_id: int, user_agent: str, notes: str = 
 async def get_all_users():
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{AUTH_SERVICE_URL}/auth/users")
+            url = f"{AUTH_SERVICE_URL}/auth/users"
+            print(f"🔍 URL: {url}")
+            resp = await client.get(url)
+            print(f"📦 RESPONSE STATUS: {resp.status_code}")
             resp.raise_for_status()
             return resp.json()
     except Exception as e:
+        print(f"❌ Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Помилка при отриманні користувачів: {str(e)}")
-
 
 @router.get("/all/sales", response_model=List[Sale], operation_id="get_all_sales_dashboard")
 async def get_all_sales():
@@ -48,12 +51,12 @@ async def get_all_sales():
 async def get_all_reviews():
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{REVIEW_SERVICE_URL}/reviews/")
+            # ✅ Исправленный путь
+            resp = await client.get(f"{REVIEW_SERVICE_URL}/reviews/reviews/")
             resp.raise_for_status()
             return resp.json()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Помилка при отриманні відгуків: {str(e)}")
-
 
 @router.get("/all/discounts", response_model=List[Discount])
 async def get_all_discounts():
@@ -70,12 +73,16 @@ async def get_all_discounts():
 async def get_all_recommendations():
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{REVIEW_SERVICE_URL}/recommendations/")
+            # ✅ Проверенный и скорректированный путь
+            resp = await client.get(f"{REVIEW_SERVICE_URL}/reviews/recommendations/")
             resp.raise_for_status()
             return resp.json()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Помилка при отриманні рекомендацій: {str(e)}")
 
+@router.get("/stats")
+def get_dashboard_stats():
+    return {"status": "ok"}
 
 @router.get("/{user_id}", response_model=DashboardOut)
 async def get_dashboard(user_id: int, request: Request, db: Session = Depends(get_db)):
@@ -106,3 +113,4 @@ async def get_dashboard(user_id: int, request: Request, db: Session = Depends(ge
         raise HTTPException(status_code=404, detail="Користувача не знайдено")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Невідома помилка: {str(e)}")
+

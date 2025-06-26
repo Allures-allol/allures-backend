@@ -1,10 +1,18 @@
 # ✅ services/review_service/main.py
+import sys
+import os
+# Добавление корневого пути (чтобы импортировать общие модули)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))  # доступ к /services и /common
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+
 from common.db.base import Base
+from common.db.session import engine, get_db
 from services.review_service.api.routes import router
-from services.review_service.db.database import engine  # нужен для bind в create_all
-from services.review_service.models import review, recommendation  # 👈 обязательно, чтобы таблицы создались
+from services.review_service.models import review, recommendation  # 👈 нужны для создания таблиц
 
 app = FastAPI(title="Review Service")
 
@@ -26,6 +34,15 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
+    db_gen = get_db()
+    db = next(db_gen)
+    try:
+        db.execute(text("SELECT 1"))
+        print("✅ PostgreSQL подключение успешно (Review Service)")
+    except Exception as e:
+        print(f"❌ Ошибка подключения к PostgreSQL: {e}")
+    finally:
+        db.close()
 
 # 🔗 Роуты
 app.include_router(router, prefix="/reviews", tags=["Reviews"])
@@ -34,5 +51,6 @@ app.include_router(router, prefix="/reviews", tags=["Reviews"])
 @app.get("/")
 def root():
     return {"message": "Review Service is running"}
+
 
 # uvicorn services.review_service.main:app --reload --port 8002

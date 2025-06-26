@@ -12,8 +12,11 @@ services:
       - ./common:/app/common
     working_dir: /app
     env_file:
-      - .env  # ⬅️ .env в корне проекта
+      - .env  # ⬅️ содержит MAINDB_URL и прочее
+    environment:
+      PYTHONPATH: /app:/app/common
+      MAINDB_URL: ${MAINDB_URL}
     command: uvicorn main:app --host 0.0.0.0 --port 8000
     depends_on:
-      - mssql-db
+      - postgres-db
     restart: always
