@@ -1,99 +1,130 @@
 # services/product_service/api/routes.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from typing import List
 
-from sqlalchemy.exc import SQLAlchemyError
 from common.db.session import get_db
 from common.models.products import Product as ProductModel
-from common.models.categories import Category
+from common.models.categories import Category as CategoryModel
 from common.models.inventory import Inventory
+
 from services.product_service.api.schemas import (
-    ProductCreate,
+    ProductCreate, ProductUpdate,
     Product as ProductOut,
-    InventoryCreate
+    InventoryCreate, CategoryCreate, Category as CategorySchema
 )
+
 from common.custom_exceptions import ProductNotFoundException, ProductInventoryUpdateException
 
 router = APIRouter()
 
-@router.post("/products/", response_model=ProductOut)
-def create_product(product: ProductCreate, db: Session = Depends(get_db)):  # ✅ исправлено
-    try:
-        category = db.query(Category).filter_by(name=product.category_name).first()
-        if not category:
-            raise HTTPException(status_code=404, detail=f"Category '{product.category_name}' not found")
 
-        db_product = ProductModel(**product.dict())
-        db.add(db_product)
-        db.commit()
-        db.refresh(db_product)
-
-        # Создание записи инвентаря
-        inventory_data = InventoryCreate(
-            product_id=db_product.id,
-            category_name=db_product.category_name,
-            inventory_quantity=db_product.current_inventory,
-        )
-        try:
-            create_inventory(inventory_data, db)
-        except Exception as error:
-            raise ProductInventoryUpdateException(f"Error creating inventory: {error}")
-
-        return db_product
-
-    except SQLAlchemyError as e:
-        db.rollback()
-        return {"success": False, "message": f"Database error: {str(e)}"}
-    except Exception as e:
-        return {"success": False, "message": f"An error occurred: {str(e)}"}
-
-@router.get("/products/", response_model=List[ProductOut])
-def get_all_products(db: Session = Depends(get_db)):  # ✅ исправлено
-    return db.query(ProductModel).all()
-
-@router.get("/products/{product_id}", response_model=ProductOut)
-def get_product_by_id(product_id: int, db: Session = Depends(get_db)):  # ✅ исправлено
-    product = db.query(ProductModel).filter(ProductModel.id == product_id).first()
-    if not product:
-        raise ProductNotFoundException(f"Product with ID {product_id} not found")
-    return product
-
-@router.put("/products/{product_id}", response_model=ProductOut)
-def update_product_attribute(product_id: int, updated_attributes: dict, db: Session = Depends(get_db)):  # ✅ исправлено
-    try:
-        db_product = db.query(ProductModel).filter_by(id=product_id).first()
-        if not db_product:
-            raise ProductNotFoundException(f"Product with ID {product_id} not found")
-
-        for key, value in updated_attributes.items():
-            if hasattr(db_product, key):
-                setattr(db_product, key, value)
-        db.commit()
-        db.refresh(db_product)
-
-        if "current_inventory" in updated_attributes:
-            inventory_data = InventoryCreate(
-                product_id=product_id,
-                category_name=db_product.category_name,
-                inventory_quantity=updated_attributes["current_inventory"],
-            )
-            try:
-                create_inventory(inventory_data, db)
-            except Exception as error:
-                raise ProductInventoryUpdateException(f"Error updating inventory: {error}")
-
-        return db_product
-
-    except SQLAlchemyError as e:
-        db.rollback()
-        return {"success": False, "message": f"Database error: {str(e)}"}
-    except Exception as e:
-        return {"success": False, "message": f"An error occurred: {str(e)}"}
-
+# 🔧 Вспомогательная функция
 def create_inventory(inventory: InventoryCreate, db: Session):
     db_inventory = Inventory(**inventory.dict())
     db.add(db_inventory)
     db.commit()
     db.refresh(db_inventory)
     return db_inventory
+
+
+# ✅ Создание нового продукта
+@router.post("/", response_model=ProductOut)
+def create_product(product: ProductCreate, db: Session = Depends(get_db)):
+    try:
+        category = db.query(CategoryModel).filter_by(category_id=product.category_id).first()
+        if not category:
+            raise HTTPException(status_code=404, detail=f"Category ID {product.category_id} not found")
+
+        db_product = ProductModel(**product.dict())
+        db.add(db_product)
+        db.commit()
+        db.refresh(db_product)
+
+        inventory_data = InventoryCreate(
+            product_id=db_product.id,
+            category_id=db_product.category_id,
+            inventory_quantity=db_product.current_inventory,
+        )
+        create_inventory(inventory_data, db)
+
+        return db_product
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+# ✅ Получение всех продуктов
+@router.get("/", response_model=List[ProductOut])
+def get_all_products(db: Session = Depends(get_db)):
+    try:
+        return db.query(ProductModel).all()
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+# ✅ Получение продукта по ID
+@router.get("/{product_id}", response_model=ProductOut)
+def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
+    product = db.query(ProductModel).filter(ProductModel.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
+    return product
+
+
+# ✅ Обновление продукта
+@router.put("/{product_id}", response_model=ProductOut)
+def update_product(product_id: int, update: ProductUpdate, db: Session = Depends(get_db)):
+    try:
+        db_product = db.query(ProductModel).filter_by(id=product_id).first()
+        if not db_product:
+            raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
+
+        update_data = update.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_product, key, value)
+
+        db.commit()
+        db.refresh(db_product)
+
+        if "current_inventory" in update_data:
+            inventory_data = InventoryCreate(
+                product_id=product_id,
+                category_id=db_product.category_id,
+                inventory_quantity=update_data["current_inventory"],
+            )
+            create_inventory(inventory_data, db)
+
+        return db_product
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+
+# ✅ Создание новой категории
+@router.post("/categories/", response_model=CategorySchema)
+def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
+    try:
+        db_category = CategoryModel(**category.dict())
+        db.add(db_category)
+        db.commit()
+        db.refresh(db_category)
+        return db_category
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+# ✅ Получение категории по ID
+@router.get("/categories/{category_id}", response_model=CategorySchema)
+def get_category_by_id(category_id: int, db: Session = Depends(get_db)):
+    category = db.query(CategoryModel).filter(CategoryModel.category_id == category_id).first()
+    if category is None:
+        raise HTTPException(status_code=404, detail=f"Category with ID {category_id} not found")
+    return category

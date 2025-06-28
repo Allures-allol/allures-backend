@@ -21,8 +21,12 @@ load_dotenv()
 
 app = FastAPI(title="Product Service")
 
+# 🔧 Проверка: вывод URL подключения
+print("▶ MAINDB_URL из settings:", settings.MAINDB_URL)
+
 # 🔗 Подключаем REST маршруты
 app.include_router(product_router, prefix="/products", tags=["Products"])
+
 app.include_router(review_router, prefix="/reviews", tags=["Reviews"])
 
 # 🌍 CORS
@@ -56,7 +60,29 @@ def startup_event():
 @app.get("/")
 def root():
     return {"message": "Product Service is running"}
+@app.on_event("startup")
+def startup_event():
+    db_gen = get_db()
+    db = next(db_gen)
+    try:
+        db.execute(text("SELECT 1"))
+        print("✅ PostgreSQL подключение успешно (Product Service)")
+    except Exception as e:
+        print(f"❌ Ошибка подключения к PostgreSQL: {e}")
+    finally:
+        db.close()
 
+@app.get("/check-db")
+def check_db():
+    db_gen = get_db()
+    db = next(db_gen)
+    try:
+        result = db.execute(text("SELECT * FROM products LIMIT 1")).fetchall()
+        return {"products_count": len(result)}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        db.close()
 # GraphQL (в будущем можно раскомментировать)
 # graphql_app = GraphQLRouter(review_schema)
 # app.include_router(graphql_app, prefix="/graphql_app")
