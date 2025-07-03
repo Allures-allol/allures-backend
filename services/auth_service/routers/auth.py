@@ -10,6 +10,8 @@ from services.auth_service.crud.user import (
 )
 from common.db.session import get_db
 from common.models.user import User
+from common.models.subscriptions import Subscription, UserSubscription
+from common.models.payment import Payment
 
 from services.auth_service.utils.security import create_access_token
 from typing import List

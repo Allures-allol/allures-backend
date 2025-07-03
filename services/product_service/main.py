@@ -1,6 +1,8 @@
 #main.py product_service
 import sys
 import os
+import common.utils.env_loader
+
 # Добавление корневого пути (чтобы импортировать общие модули)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))  # доступ к /services и /common
 
@@ -8,9 +10,13 @@ from fastapi import FastAPI
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+from common.models.products import Product
+from common.models.categories import Category
+
 
 from common.db.session import get_db
 from common.config.settings import settings
+
 from services.product_service.api.routes import router as product_router
 from services.review_service.api.routes import router as review_router
 # from graphql_app.schema import schema as review_schema
@@ -42,6 +48,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# db_url = os.getenv("MAINDB_URL")
+# print("🔗 MAINDB_URL:", db_url)
 
 # ✅ Проверка подключения к PostgreSQL
 @app.on_event("startup")

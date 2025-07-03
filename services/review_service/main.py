@@ -1,22 +1,33 @@
 # ✅ services/review_service/main.py
 import sys
 import os
-# Добавление корневого пути (чтобы импортировать общие модули)
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))  # доступ к /services и /common
+# import common.utils.env_loader
+
+# Добавление корневого пути (для доступа к /services и /common)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+from common.models.products import Product
+from common.models.categories import Category
 
+from common.models.payment import Payment
+from common.models.subscriptions import Subscription, UserSubscription
 from common.db.base import Base
 from common.db.session import engine, get_db
 from services.review_service.api.routes import router
-from services.review_service.models import review, recommendation  # 👈 нужны для создания таблиц
+from services.review_service.models.recommendation import Recommendation
+from services.review_service.models.review import Review
+from dotenv import load_dotenv
+
+# Загрузка .env
+load_dotenv()
 
 app = FastAPI(title="Review Service")
 
-# 🔓 Разрешённые домены
+# 🔓 CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -29,6 +40,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ✅ Здесь была ошибка — теперь исправлено
+app.include_router(router, prefix="/reviews", tags=["Reviews"])
+
+# db_url = os.getenv("MAINDB_URL")
+# print("🔗 MAINDB_URL:", db_url)
 
 # 🛠️ Создание таблиц при старте
 @app.on_event("startup")
@@ -43,9 +60,6 @@ def on_startup():
         print(f"❌ Ошибка подключения к PostgreSQL: {e}")
     finally:
         db.close()
-
-# 🔗 Роуты
-app.include_router(router, prefix="/reviews", tags=["Reviews"])
 
 # 🌐 Корень
 @app.get("/")

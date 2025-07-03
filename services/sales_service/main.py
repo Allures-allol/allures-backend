@@ -1,5 +1,7 @@
 import sys
 import os
+import common.utils.env_loader
+
 # Добавление корневого пути (чтобы импортировать общие модули)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))  # доступ к /services и /common
 
@@ -7,7 +9,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from dotenv import load_dotenv
-
+from common.models.products import Product
+from common.models.categories import Category
 from services.sales_service.api.routes import router as sales_router
 from common.db.session import get_db
 
@@ -33,6 +36,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# db_url = os.getenv("MAINDB_URL")
+# print("🔗 MAINDB_URL:", db_url)
 
 # Главная страница
 @app.get("/")

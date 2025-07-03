@@ -1,3 +1,4 @@
+#sales_service/api/controller.py
 import os
 import requests
 from datetime import datetime
@@ -17,22 +18,37 @@ from common.custom_exceptions import (
 )
 
 
+# 🔹 Получение деталей продукта по ID
 def get_product_details_by_id(product_id: int):
     base_path = os.getenv("PRODUCT_SERVICE_URL", "http://product_service:8000")
     url = f"{base_path}/products/get_product/?product_id={product_id}"
-    print("Requesting product details from:", url)
+    print("Запрос к продукту:", url)
     return requests.get(url=url)
 
 
+# 🔹 Обновление инвентаря продукта
 def decrement_product_inventory(new_quantity: int, product_id: int):
     base_path = os.getenv("PRODUCT_SERVICE_URL", "http://product_service:8000")
     url = f"{base_path}/products/update/?product_id={product_id}"
     return requests.put(url=url, json={"current_inventory": new_quantity})
 
 
+# 🔹 Получение всех категорий для сопоставления ID -> name
+def get_all_categories():
+    base_path = os.getenv("PRODUCT_SERVICE_URL", "http://product_service:8000")
+    url = f"{base_path}/categories/"
+    try:
+        resp = requests.get(url)
+        if resp.status_code == HttpStatus.OK:
+            return {c["category_id"]: c["name"] for c in resp.json()}
+    except Exception as e:
+        print("❌ Ошибка при получении категорий:", e)
+    return {}
+
+
+# 🔹 Транзакция создания продажи
 def create_product_sale_transaction(sale_data: dict, db: Session):
     try:
-        # ✅ Распаковка всех нужных полей
         db_sale = Sales(
             product_id=sale_data["product_id"],
             user_id=sale_data["user_id"],
@@ -40,11 +56,11 @@ def create_product_sale_transaction(sale_data: dict, db: Session):
             units_sold=sale_data["units_sold"]
         )
 
-        print("Payload received:", vars(db_sale))
+        print("Полученные данные:", vars(db_sale))
 
         product_response = get_product_details_by_id(db_sale.product_id)
         if product_response.status_code != HttpStatus.OK:
-            raise ProductNotFoundException("Product not found")
+            raise ProductNotFoundException("Продукт не найден")
 
         product_data = product_response.json()
         current_inventory = product_data.get("current_inventory", 0)
@@ -54,7 +70,7 @@ def create_product_sale_transaction(sale_data: dict, db: Session):
             inventory_update = decrement_product_inventory(new_inventory, db_sale.product_id)
 
             if inventory_update.status_code != HttpStatus.OK:
-                raise ProductInventoryUpdateException("Error updating inventory")
+                raise ProductInventoryUpdateException("Ошибка при обновлении инвентаря")
 
             db_sale.total_price = product_data["price"] * db_sale.units_sold
             db_sale.revenue = db_sale.total_price
@@ -67,10 +83,10 @@ def create_product_sale_transaction(sale_data: dict, db: Session):
         elif current_inventory > 0:
             reduce_by = db_sale.units_sold - current_inventory
             raise InsufficientInventoryException(
-                f"Insufficient inventory. Reduce quantity by {reduce_by}"
+                f"Недостаточно товара на складе. Уменьшите количество на {reduce_by}"
             )
         else:
-            raise ProductOutofStockException("Product is out of stock")
+            raise ProductOutofStockException("Продукт отсутствует на складе")
 
     except SQLAlchemyError as e:
         db.rollback()
@@ -79,6 +95,7 @@ def create_product_sale_transaction(sale_data: dict, db: Session):
         db.close()
 
 
+# 🔹 Получение и агрегация статистики продаж
 def fetch_sales(db: Session, product_id=None, category_id=None, user_id=None, start_date=None, end_date=None, group_by=None):
     try:
         sales_query = db.query(
@@ -93,7 +110,7 @@ def fetch_sales(db: Session, product_id=None, category_id=None, user_id=None, st
         if product_id is not None:
             product_details = get_product_details_by_id(product_id)
             if product_details.status_code != HttpStatus.OK:
-                raise ProductNotFoundException("Product not found")
+                raise ProductNotFoundException("Продукт не найден")
             sales_query = sales_query.filter(Sales.product_id == product_id)
 
         if category_id is not None:
@@ -109,8 +126,8 @@ def fetch_sales(db: Session, product_id=None, category_id=None, user_id=None, st
         if group_by:
             group_map = {
                 "day": [func.DATE(Sales.sold_at)],
-                "month": [func.YEAR(Sales.sold_at), func.MONTH(Sales.sold_at)],
-                "year": [func.YEAR(Sales.sold_at)],
+                "month": [func.extract("year", Sales.sold_at), func.extract("month", Sales.sold_at)],
+                "year": [func.extract("year", Sales.sold_at)],
                 "category": [Sales.category_id],
                 "category-year": [Sales.category_id, func.extract("year", Sales.sold_at)],
                 "category-month": [Sales.category_id, func.extract("year", Sales.sold_at), func.extract("month", Sales.sold_at)],
@@ -136,14 +153,23 @@ def fetch_sales(db: Session, product_id=None, category_id=None, user_id=None, st
             sales_query = sales_query.group_by(Sales.product_id, Sales.category_id, Sales.user_id, Sales.sold_at)
 
         print("Generated SQL:\n", sales_query.statement)
-        result = sales_query.all()
+        raw_sales = sales_query.all()
 
-        if not result:
-            raise NoSalesDataFoundException("No sales data found")
+        if not raw_sales:
+            raise NoSalesDataFoundException("Нет данных о продажах")
 
-        return result
+        # 🔹 Получение категорий и добавление имени категории
+        category_map = get_all_categories()
+        enriched_result = []
+
+        for row in raw_sales:
+            row_dict = row._asdict() if hasattr(row, "_asdict") else dict(row)
+            row_dict["category_name"] = category_map.get(row_dict.get("category_id"), "Без категории")
+            enriched_result.append(row_dict)
+
+        return enriched_result
 
     except NoResultFound:
-        raise ProductNotFoundException("Product not found")
+        raise ProductNotFoundException("Продукт не найден")
     except Exception as e:
         raise e

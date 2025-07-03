@@ -1,5 +1,5 @@
 # services/payment_service/crud/payment.py
-from services.payment_service.models.payment import Payment
+from common.models.payment import Payment
 import httpx
 from common.config.settings import settings
 

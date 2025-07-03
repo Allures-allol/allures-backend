@@ -1,13 +1,19 @@
 # services.payment_service/routers/payment.py
 from fastapi import APIRouter, Depends, Request
+from fastapi.responses import JSONResponse
+
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+
 from services.payment_service.schemas.payment import PaymentCreate, PaymentOut
 from services.payment_service.crud.payment import create_payment, get_all_payments, create_nowpayment_invoice
-from common.db.session import get_db
-from fastapi.responses import JSONResponse
-from common.config.settings import settings
 from services.payment_service.common.config.settings_payment import settings_payment
+
+from common.models.subscriptions import Subscription, UserSubscription
+from common.models.payment import Payment
+from common.db.session import get_db
+from common.config.settings import settings
+
 
 router = APIRouter()
 

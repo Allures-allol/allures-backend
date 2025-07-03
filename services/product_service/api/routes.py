@@ -1,17 +1,23 @@
 # services/product_service/api/routes.py
+from fastapi import Query
+from sqlalchemy import asc, desc
+from sqlalchemy.orm import joinedload
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from typing import List
+from typing import List, Optional
 
 from common.db.session import get_db
 from common.models.products import Product as ProductModel
 from common.models.categories import Category as CategoryModel
 from common.models.inventory import Inventory
+from common.models.subscriptions import Subscription, UserSubscription
+from common.models.payment import Payment
+
 
 from services.product_service.api.schemas import (
     ProductCreate, ProductUpdate,
-    Product as ProductOut,
+    ProductOut,
     InventoryCreate, CategoryCreate, Category as CategorySchema
 )
 
@@ -19,8 +25,8 @@ from common.custom_exceptions import ProductNotFoundException, ProductInventoryU
 
 router = APIRouter()
 
-
 # 🔧 Вспомогательная функция
+
 def create_inventory(inventory: InventoryCreate, db: Session):
     db_inventory = Inventory(**inventory.dict())
     db.add(db_inventory)
@@ -29,50 +35,59 @@ def create_inventory(inventory: InventoryCreate, db: Session):
     return db_inventory
 
 
-# ✅ Создание нового продукта
-@router.post("/", response_model=ProductOut)
-def create_product(product: ProductCreate, db: Session = Depends(get_db)):
-    try:
-        category = db.query(CategoryModel).filter_by(category_id=product.category_id).first()
-        if not category:
-            raise HTTPException(status_code=404, detail=f"Category ID {product.category_id} not found")
-
-        db_product = ProductModel(**product.dict())
-        db.add(db_product)
-        db.commit()
-        db.refresh(db_product)
-
-        inventory_data = InventoryCreate(
-            product_id=db_product.id,
-            category_id=db_product.category_id,
-            inventory_quantity=db_product.current_inventory,
-        )
-        create_inventory(inventory_data, db)
-
-        return db_product
-
-    except SQLAlchemyError as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-
-# ✅ Получение всех продуктов
+# ✅ Получение всех продуктов с категорией
 @router.get("/", response_model=List[ProductOut])
 def get_all_products(db: Session = Depends(get_db)):
-    try:
-        return db.query(ProductModel).all()
-    except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    products = (
+        db.query(ProductModel)
+        .options(joinedload(ProductModel.category))
+        .all()
+    )
+
+    return [
+        ProductOut(
+            id=p.id,
+            name=p.name,
+            description=p.description,
+            price=p.price,
+            old_price=p.old_price,
+            image=p.image,
+            status=p.status,
+            current_inventory=p.current_inventory,
+            is_hit=p.is_hit,
+            is_discount=p.is_discount,
+            is_new=p.is_new,
+            created_at=p.created_at,
+            updated_at=p.updated_at,
+            category_name=p.category.name if p.category else "Без категории"
+        )
+        for p in products
+    ]
 
 
 # ✅ Получение продукта по ID
 @router.get("/{product_id}", response_model=ProductOut)
 def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
-    product = db.query(ProductModel).filter(ProductModel.id == product_id).first()
+    product = db.query(ProductModel).options(joinedload(ProductModel.category)).filter(ProductModel.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
-    return product
+
+    return ProductOut(
+        id=product.id,
+        name=product.name,
+        description=product.description,
+        price=product.price,
+        old_price=product.old_price,
+        image=product.image,
+        status=product.status,
+        current_inventory=product.current_inventory,
+        is_hit=product.is_hit,
+        is_discount=product.is_discount,
+        is_new=product.is_new,
+        created_at=product.created_at,
+        updated_at=product.updated_at,
+        category_name=product.category.name if product.category else "Без категории"
+    )
 
 
 # ✅ Обновление продукта
@@ -98,7 +113,22 @@ def update_product(product_id: int, update: ProductUpdate, db: Session = Depends
             )
             create_inventory(inventory_data, db)
 
-        return db_product
+        return ProductOut(
+            id=db_product.id,
+            name=db_product.name,
+            description=db_product.description,
+            price=db_product.price,
+            old_price=db_product.old_price,
+            image=db_product.image,
+            status=db_product.status,
+            current_inventory=db_product.current_inventory,
+            is_hit=db_product.is_hit,
+            is_discount=db_product.is_discount,
+            is_new=db_product.is_new,
+            created_at=db_product.created_at,
+            updated_at=db_product.updated_at,
+            category_name=db_product.category.name if db_product.category else "Без категории"
+        )
 
     except SQLAlchemyError as e:
         db.rollback()

@@ -1,8 +1,9 @@
 # services/common/models/user.py
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
-from datetime import datetime
-from common.db.base import Base
 from sqlalchemy.orm import relationship
+from datetime import datetime
+
+from common.db.base import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -21,7 +22,8 @@ class User(Base):
     role = Column(String(50), default="user")
     is_blocked = Column(Boolean, default=False)
 
-    # Убираем циклический импорт: описываем связь без импорта Upload и Order
-    # uploads = relationship("Upload", back_populates="user", lazy="selectin")
-    # sales = relationship("Sales", back_populates="user", lazy="selectin")
+    sales = relationship("Sales", back_populates="user", cascade="all, delete")
+    uploads = relationship("Upload", back_populates="user", cascade="all, delete")
 
+from common.models.sales import Sales
+from common.models.uploads import Upload

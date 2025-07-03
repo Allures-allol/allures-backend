@@ -1,15 +1,22 @@
 #services/subscription_service/main.py
-# ✅ services/subscription_service/main.py
 import sys
 import os
+import common.utils.env_loader
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+from services.subscription_service.routers.subscription_routers import router as subscription_router
+from common.models.subscriptions import Subscription, UserSubscription
+from common.models.payment import Payment
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-
-from services.subscription_service.routers import subscription
 from common.db.session import get_db
+from dotenv import load_dotenv
+
+# Загрузка .env
+load_dotenv()
+
 
 app = FastAPI(title="Subscription Service")
 
@@ -26,7 +33,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(subscription.router, prefix="/subscription", tags=["Subscription"])
+app.include_router(subscription_router, prefix="/subscription", tags=["Subscription"])
+
+# db_url = os.getenv("MAINDB_URL")
+# print("🔗 MAINDB_URL:", db_url)
 
 @app.on_event("startup")
 def startup_event():
@@ -44,3 +54,4 @@ def startup_event():
 def root():
     return {"message": "Subscription Service is running"}
 
+# uvicorn services.subscription_service.main:app --reload --port 8011

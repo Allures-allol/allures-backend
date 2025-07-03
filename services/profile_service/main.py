@@ -1,6 +1,8 @@
-#main.py profile_service
+#services/profile_service/main.py
 import sys
 import os
+import common.utils.env_loader
+
 # Добавление корневого пути (чтобы импортировать общие модули)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))  # доступ к /services и /common
 
@@ -17,10 +19,6 @@ load_dotenv()
 
 app = FastAPI(title="Profile Service")
 
-# 🔗 Роуты
-app.include_router(company.router, prefix="/company", tags=["Company Profile"])
-app.include_router(schedule.router, prefix="/schedule", tags=["Work Schedule"])
-
 # 🌍 CORS
 app.add_middleware(
     CORSMiddleware,
@@ -34,6 +32,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 🔗 Роуты
+app.include_router(company.router, prefix="/company", tags=["Company Profile"])
+app.include_router(schedule.router, prefix="/schedule", tags=["Work Schedule"])
+
+# db_url = os.getenv("MAINDB_URL")
+# print("🔗 MAINDB_URL:", db_url)
 
 # ✅ Проверка подключения к PostgreSQL
 @app.on_event("startup")

@@ -21,9 +21,10 @@ class Product(Base):
     is_discount = Column(Boolean, default=False)
     is_new = Column(Boolean, default=False)
 
-    category_id = Column(Integer, ForeignKey("categories.category_id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    category_id = Column(Integer, ForeignKey("categories.category_id"), nullable=False)
     category = relationship("Category", back_populates="products")
 
+    sales = relationship("Sales", back_populates="product", cascade="all, delete-orphan")

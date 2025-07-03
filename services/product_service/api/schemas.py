@@ -3,7 +3,22 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-class Product(BaseModel):
+# === Категория товара ===
+class CategoryCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class Category(BaseModel):
+    category_id: int
+    name: str
+    description: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+# === Продукт ===
+class ProductBase(BaseModel):
     name: str
     description: str
     price: float
@@ -12,13 +27,14 @@ class Product(BaseModel):
     status: str
     current_inventory: int
     category_id: int
-
     is_hit: Optional[bool] = False
     is_discount: Optional[bool] = False
     is_new: Optional[bool] = False
 
-class ProductCreate(Product):
+
+class ProductCreate(ProductBase):
     pass
+
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -33,25 +49,26 @@ class ProductUpdate(BaseModel):
     is_discount: Optional[bool] = None
     is_new: Optional[bool] = None
 
-class ProductOut(Product):
+
+class ProductOut(BaseModel):
     id: int
+    name: str
+    description: str
+    price: float
+    old_price: Optional[float]
+    image: Optional[str]
+    status: str
+    current_inventory: int
+    is_hit: Optional[bool]
+    is_discount: Optional[bool]
+    is_new: Optional[bool]
     created_at: datetime
     updated_at: datetime
+    category_name: str
 
     class Config:
         from_attributes = True
 
-class CategoryCreate(BaseModel):
-    name: str
-    description: Optional[str] = None
-
-class Category(BaseModel):
-    category_id: int
-    name: str
-    description: Optional[str] = None
-
-    class Config:
-        from_attributes = True
 
 class InventoryCreate(BaseModel):
     product_id: int

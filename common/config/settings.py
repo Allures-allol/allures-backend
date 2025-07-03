@@ -24,12 +24,15 @@ class Settings(BaseSettings):
     PAYMENTS_SERVICE_URL: str = Field(..., alias="PAYMENTS_SERVICE_URL")
     DISCOUNT_SERVICE_URL: str = Field(..., alias="DISCOUNT_SERVICE_URL")
     DASHBOARD_SERVICE_URL: str = Field(..., alias="DASHBOARD_SERVICE_URL")
+    ADMIN_SERVICE_URL: str = Field(..., alias="ADMIN_SERVICE_URL")
+    SUBSCRIPTION_SERVICE_URL: str = Field(..., alias="SUBSCRIPTION_SERVICE_URL")
+
 
     model_config = SettingsConfigDict(
         env_file=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.env")),
         env_file_encoding="utf-8",
-        extra="allow"
+        extra="allow",
+        case_sensitive = True
     )
-
 
 settings = Settings()

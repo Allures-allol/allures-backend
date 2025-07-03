@@ -1,4 +1,8 @@
 #main.py для discount_service
+import sys
+import os
+import common.utils.env_loader
+
 from fastapi import FastAPI
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,6 +33,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# db_url = os.getenv("MAINDB_URL")
+# print("🔗 MAINDB_URL:", db_url)
 
 # ✅ Проверка подключения к PostgreSQL
 @app.on_event("startup")

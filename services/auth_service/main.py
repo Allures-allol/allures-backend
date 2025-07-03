@@ -1,6 +1,8 @@
 #services/auth_service/main.py
 import sys
 import os
+import common.utils.env_loader
+
 # Добавление корневого пути (чтобы импортировать общие модули)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))  # доступ к /services и /common
 
@@ -11,7 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from typing import List
 from sqlalchemy import text
-
+from common.models.user import User
+from common.models.uploads import Upload
 from common.db.session import get_db
 from common.config.settings import settings
 from services.auth_service.routers import auth
@@ -40,6 +43,9 @@ app.add_middleware(
 
 # 🔗 Роутеры
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
+#
+# db_url = os.getenv("MAINDB_URL")
+# print("🔗 MAINDB_URL:", db_url)
 
 # ✅ Проверка подключения к PostgreSQL
 @app.on_event("startup")

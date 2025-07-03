@@ -1,25 +1,33 @@
 # services/sales_service/api/schemas/sales.py
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from common.enums.product_enums import ProductCategory
 from datetime import datetime
 from typing import Optional
 
+
+# ✅ Базовая модель для продаж
 class SalesBase(BaseModel):
     product_id: int
     user_id: int
     category_id: int
     units_sold: int = 0
 
-# Для создания новой продажи
-class SalesCreate(SalesBase):
-    pass
 
-# Для возврата полной информации о продаже
+# ✅ Для создания новой продажи
+class SalesCreate(BaseModel):
+    product_id: int
+    user_id: int
+    category_id: int
+    quantity: int = Field(..., alias="units_sold")
+
+
+# ✅ Для возврата полной информации о продаже
 class SalesOut(BaseModel):
     id: int
     product_id: int
     user_id: int
     category_id: int
+    category_name: Optional[str] = None
     quantity: int
     sold_at: datetime
     total_price: float
@@ -28,7 +36,8 @@ class SalesOut(BaseModel):
     class Config:
         from_attributes = True
 
-# Параметры запроса для фильтрации продаж
+
+# ✅ Параметры запроса для фильтрации продаж
 class SalesRequestParams(BaseModel):
     product_id: Optional[int] = None
     category_id: Optional[int] = None
@@ -37,10 +46,12 @@ class SalesRequestParams(BaseModel):
     end_date: Optional[str] = None
     group_by: Optional[str] = None
 
-# Результат статистики продаж
+
+# ✅ Результат статистики продаж
 class SalesStats(BaseModel):
     product_id: Optional[int]
     category_id: Optional[int]
+    category_name: Optional[str] = None
     user_id: Optional[int]
     last_sold_at: Optional[datetime]
     total_units_sold: int

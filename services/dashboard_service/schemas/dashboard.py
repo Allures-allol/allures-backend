@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-
 # 📊 Dashboard общая информация
 class DashboardOut(BaseModel):
     id: int
@@ -17,6 +16,17 @@ class DashboardOut(BaseModel):
     sales_count: int
     reviews_count: int
     discounts_count: int
+
+    class Config:
+        from_attributes = True
+
+# ✅ Лог входа в дашборд (DashboardLog)
+class DashboardLogOut(BaseModel):
+    id: int
+    user_id: int
+    fetched_at: datetime
+    user_agent: Optional[str]
+    notes: Optional[str]
 
     class Config:
         from_attributes = True

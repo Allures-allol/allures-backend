@@ -32,14 +32,28 @@ class ProductUpdate(BaseModel):
     current_inventory: Optional[int] = None
 
 # Ответ на запрос продукта
-class Product(ProductBase):
+# services/sales_service/api/schemas/product.py
+
+class Product(BaseModel):
     id: int
+    name: str
+    description: str
+    price: float
+    old_price: Optional[float]
+    image: Optional[str]
+    status: str
+    current_inventory: int
+    is_hit: Optional[bool]
+    is_discount: Optional[bool]
+    is_new: Optional[bool]
     created_at: datetime
     updated_at: datetime
-    status: str
+    category_id: int
+    category_name: Optional[str]  # 👈 добавлено
 
     class Config:
         from_attributes = True
+
 
 # Модель для инвентаря (если нужно)
 class InventoryCreate(BaseModel):

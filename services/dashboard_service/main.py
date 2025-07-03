@@ -1,6 +1,8 @@
 #services/dashboard_service/main.py
 import sys
 import os
+import common.utils.env_loader
+
 # Добавление корневого пути (чтобы импортировать общие модули)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))  # доступ к /services и /common
 
@@ -11,6 +13,10 @@ from sqlalchemy import text
 from services.dashboard_service.routers import dashboard
 from common.config.settings import settings
 from common.db.session import get_db
+from dotenv import load_dotenv
+
+# Загрузка .env
+load_dotenv()
 
 app = FastAPI(title="Dashboard Service")
 
@@ -30,6 +36,9 @@ app.add_middleware(
 
 # 🔗 Роутер
 app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
+
+# db_url = os.getenv("MAINDB_URL")
+# print("🔗 MAINDB_URL:", db_url)
 
 # ✅ Проверка подключения к PostgreSQL
 @app.on_event("startup")

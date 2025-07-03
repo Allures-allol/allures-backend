@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     PRODUCT_SERVICE_URL: str = Field(..., alias="PRODUCT_SERVICE_URL")
     PROFILE_SERVICE_URL: str = Field(..., alias="PROFILE_SERVICE_URL")
     DASHBOARD_SERVICE_URL: str = Field(..., alias="DASHBOARD_SERVICE_URL")
+    ADMIN_SERVICE_URL: str = Field(..., alias="ADMIN_SERVICE_URL")
+    SUBSCRIPTION_SERVICE_URL: str = Field(..., alias="SUBSCRIPTION_SERVICE_URL")
+
 
     model_config = SettingsConfigDict(
         env_file=".env",

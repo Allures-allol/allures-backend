@@ -1,46 +1,46 @@
-# # services/subscription_service/schemas/subscription_schemas.py
+# services/subscription_service/schemas/subscription_schemas.py
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Literal
 from enum import Enum
+from typing import Optional
 
+# Базовая модель подписки
 class SubscriptionBase(BaseModel):
     name: str
-    scan_limit: int
     price: int
     duration_days: int
-    description: str | None = None
+    product_limit: int
+    promo_balance: int
+    support_level: str
+    stats_access: bool
+    description: Optional[str] = None
 
+# Подписка (чтение из БД)
 class SubscriptionOut(SubscriptionBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-class SubscriptionShort(BaseModel):
-    name: str
-    end_date: datetime
-    remaining_scans: int
+# Статус подписки (опционально)
+class SubscriptionStatus(str, Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
 
-    class Config:
-        orm_mode = True
+# Запрос на обновление подписки
+class UpdateSubscriptionRequest(BaseModel):
+    login: str
+    new_status: SubscriptionStatus
 
+# Модель для вывода подписки пользователя
 class UserSubscriptionOut(BaseModel):
     id: int
     user_id: int
     subscription_id: int
     start_date: datetime
     end_date: datetime
-    remaining_scans: int
     is_active: bool
+    subscription: SubscriptionOut
 
     class Config:
-        orm_mode = True
-
-class SubscriptionStatus(str, Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-
-class UpdateSubscriptionRequest(BaseModel):
-    login: str
-    new_status: str
+        from_attributes = True
