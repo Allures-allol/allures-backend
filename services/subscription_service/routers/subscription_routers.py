@@ -12,7 +12,7 @@ from services.subscription_service.schemas.subscription_schemas import (
     UserSubscriptionOut
 )
 
-from services.subscription_service.crud import subscription_crud
+from services.subscription_service.crud.subscription_crud import activate_subscription_from_payment
 
 router = APIRouter()
 
