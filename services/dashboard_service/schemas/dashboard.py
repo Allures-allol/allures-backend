@@ -1,7 +1,16 @@
 #services/dashboard_service/schemas/dashboard.py
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
+
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str]
+    email: Optional[EmailStr]
+    phone: Optional[str]
+    avatar_url: Optional[str]
+    language: Optional[str]
+    bonus_balance: Optional[int]
+    delivery_address: Optional[str]
 
 # 📊 Dashboard общая информация
 class DashboardOut(BaseModel):
@@ -30,6 +39,10 @@ class DashboardLogOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class UpdateResponse(BaseModel):
+    message: str
+    user_id: int
 
 # ✅ Продажа (Sales)
 class Sale(BaseModel):

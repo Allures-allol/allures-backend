@@ -2,6 +2,8 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, TIMESTAMP, func
 from sqlalchemy.orm import relationship
 from common.db.base import Base
+from common.models.products import Product
+from common.models.user import User
 
 class Review(Base):
     __tablename__ = "reviews"
@@ -16,6 +18,5 @@ class Review(Base):
     score = Column(Float)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
-    user = relationship("User", lazy="joined")  # 🔁 Без back_populates
-    product = relationship("Product", lazy="joined")
-
+    user = relationship("User", back_populates="reviews", lazy="joined")
+    product = relationship("Product", back_populates="reviews", lazy="joined")

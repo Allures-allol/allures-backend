@@ -8,11 +8,10 @@ class Upload(Base):
     __tablename__ = "uploads"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    admin_id = Column(Integer, ForeignKey("admin.id"))
-    image_url = Column(String)
-    result_text = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    filename = Column(String(255), nullable=False)
+    file_url = Column(String(1024), nullable=False)
+    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     user = relationship("User", back_populates="uploads")
 

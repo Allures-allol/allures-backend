@@ -6,15 +6,6 @@ from typing import Optional
 class UserCreate(BaseModel):
     login: str = Field(..., example="user@example.com")
     password: str = Field(..., example="yourStrongPassword123")
-    full_name: Optional[str] = None
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = None
-    avatar_url: Optional[str] = None
-    language: Optional[str] = "uk"
-    bonus_balance: Optional[int] = 0
-    delivery_address: Optional[str] = None
-    role: Optional[str] = "user"
-    is_blocked: Optional[bool] = False
 
 class UserOut(BaseModel):
     id: int
@@ -33,6 +24,10 @@ class UserOut(BaseModel):
     class Config:
         from_attributes = True
 
+class LoginRequest(BaseModel):
+    login: str = Field(..., example="user@example.com")
+    password: str = Field(..., example="yourStrongPassword123")
+
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str
@@ -42,11 +37,18 @@ class LoginResponse(BaseModel):
     id: int
     is_blocked: bool
 
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str]
+    email: Optional[EmailStr]
+    phone: Optional[str]
+    avatar_url: Optional[str]
+    language: Optional[str]
+    bonus_balance: Optional[int]
+    delivery_address: Optional[str]
+
 class ForgotPassword(BaseModel):
     email: EmailStr
 
 class ResetPassword(BaseModel):
     email: EmailStr
     new_password: str
-
-

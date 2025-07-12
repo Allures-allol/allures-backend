@@ -36,3 +36,6 @@ class Settings(BaseSettings):
     )
 
 settings = Settings()
+
+print("🔧 [SETTINGS] SALES_SERVICE_URL:", settings.SALES_SERVICE_URL)
+print("🔧 [SETTINGS] REVIEW_SERVICE_URL:", settings.REVIEW_SERVICE_URL)

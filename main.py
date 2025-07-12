@@ -1,17 +1,21 @@
 #корень /main.py
 import sys
 import os
+# Добавление корневого пути (для импорта модулей из /services и /common)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 #import common.utils.env_loader
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from sqlalchemy import text
-
-# Добавление корневого пути (для импорта модулей из /services и /common)
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from common.db.session import get_db
+from sqlalchemy import text
+from common.db.base import Base
+from common.db.session import engine
+import common.models
+from services.review_service.models.review import Review
+from services.review_service.models.recommendation import Recommendation
 
 # Импорт роутеров всех микросервисов
 from services.product_service.api.routes import router as product_router
@@ -23,6 +27,7 @@ from services.auth_service.routers.auth import router as auth_router
 from services.dashboard_service.routers.dashboard import router as dashboard_router
 from services.admin_service.routers.admin_router import router as admin_router                # 🆕
 from services.subscription_service.routers.subscription_routers import router as subscription_router  # 🆕
+from services.review_service.models.review import Review
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -60,11 +65,20 @@ app.add_middleware(
 # Проверка подключения к БД
 @app.on_event("startup")
 def startup_event():
+    from sqlalchemy import text
+    from common.db.base import Base
+    from common.db.session import engine
+
     db_gen = get_db()
     db = next(db_gen)
     try:
         db.execute(text("SELECT 1"))
         print("✅ PostgreSQL подключение успешно (Allures Backend)")
+
+        # Создание таблиц
+        Base.metadata.create_all(bind=engine)
+        print("📦 Таблицы успешно созданы (если не существовали)")
+
     except Exception as e:
         print(f"❌ Ошибка подключения к PostgreSQL: {e}")
     finally:
@@ -73,6 +87,5 @@ def startup_event():
 @app.get("/")
 def root():
     return {"message": "Hello from Allures Backend"}
-
 
 # uvicorn main:app --reload --port 8008

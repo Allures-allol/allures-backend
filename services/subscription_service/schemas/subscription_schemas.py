@@ -4,35 +4,42 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-# Базовая модель подписки
+
+# 📦 Базовая схема (без id, используется в create/update)
 class SubscriptionBase(BaseModel):
+    code: str
+    language: str
     name: str
     price: int
     duration_days: int
     product_limit: int
     promo_balance: int
-    support_level: str
+    support_level: Optional[str]
     stats_access: bool
-    description: Optional[str] = None
+    description: Optional[str]
 
-# Подписка (чтение из БД)
+
+# 📤 Подписка из БД
 class SubscriptionOut(SubscriptionBase):
     id: int
 
     class Config:
         from_attributes = True
 
-# Статус подписки (опционально)
+
+# 📊 Статус подписки
 class SubscriptionStatus(str, Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
 
-# Запрос на обновление подписки
+
+# 🔄 Запрос на обновление подписки
 class UpdateSubscriptionRequest(BaseModel):
     login: str
     new_status: SubscriptionStatus
 
-# Модель для вывода подписки пользователя
+
+# 📤 Подписка пользователя
 class UserSubscriptionOut(BaseModel):
     id: int
     user_id: int

@@ -1,6 +1,6 @@
 # services/dashboard_service/routers/dashboard.py
 from sqlalchemy.orm import Session
-from fastapi import Request, Depends, APIRouter, HTTPException, Query
+from fastapi import APIRouter, Request, Depends, APIRouter, HTTPException, Query, Path
 from services.dashboard_service.schemas.dashboard import DashboardOut, DashboardLogOut, Sale, Review, Discount, Recommendation
 from services.dashboard_service.utils.fetch_data import get_sales_count, get_reviews_count
 from common.config.settings import settings
@@ -9,6 +9,7 @@ from datetime import datetime
 from common.models.dashboard_log import DashboardLog
 from common.models.subscriptions import Subscription, UserSubscription
 from common.models.payment import Payment
+from services.dashboard_service.schemas.dashboard import UserProfileUpdate
 
 from typing import List, Optional
 import httpx
@@ -33,6 +34,7 @@ def save_dashboard_log(db: Session, user_id: int, user_agent: str, notes: str = 
     except Exception as e:
         db.rollback()
         print(f"❌ Error saving dashboard log: {str(e)}")
+
 
 @router.get("/logs/", response_model=List[DashboardLogOut])
 def get_logs(
@@ -117,8 +119,36 @@ async def get_all_recommendations():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Помилка при отриманні рекомендацій: {str(e)}")
 
+@router.get("/profile/{user_id}", summary="Отримати профіль користувача", response_model=DashboardOut)
+async def get_user_profile(user_id: int):
+    try:
+        async with httpx.AsyncClient() as client:
+            user_resp = await client.get(f"{AUTH_SERVICE_URL}/auth/users/{user_id}")
+            user_resp.raise_for_status()
 
-# ✅ Простой эндпоинт для теста
+        user = user_resp.json()
+        sales_count = await get_sales_count(user_id)
+        reviews_count = await get_reviews_count(user_id)
+
+        return DashboardOut(
+            id=user["id"],
+            full_name=user.get("full_name"),
+            email=user.get("email") or user["login"],
+            phone=user.get("phone"),
+            avatar_url=user.get("avatar_url"),
+            language=user.get("language"),
+            bonus_balance=user.get("bonus_balance", 0),
+            delivery_address=user.get("delivery_address"),
+            sales_count=sales_count,
+            reviews_count=reviews_count,
+            discounts_count=0
+        )
+    except httpx.HTTPStatusError:
+        raise HTTPException(status_code=404, detail="Користувача не знайдено")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Невідома помилка: {str(e)}")
+
+# ✅ эндпоинт для теста
 @router.get("/stats")
 def get_dashboard_stats():
     return {"status": "ok"}
