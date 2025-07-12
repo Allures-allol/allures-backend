@@ -1,0 +1,41 @@
+name: 🚀 Deploy to Heroku
+
+on:
+  push:
+    branches:
+      - heroku-deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 #Disabled shallow clone
+
+      - name: 🔧 Install Heroku CLI
+        run: |
+          curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: 🔑 Login to Heroku
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          echo "machine api.heroku.com" > ~/.netrc
+          echo "  login ${{ secrets.HEROKU_EMAIL }}" >> ~/.netrc
+          echo "  password $HEROKU_API_KEY" >> ~/.netrc
+          echo "machine git.heroku.com" >> ~/.netrc
+          echo "  login ${{ secrets.HEROKU_EMAIL }}" >> ~/.netrc
+          echo "  password $HEROKU_API_KEY" >> ~/.netrc
+          heroku auth:whoami
+
+      - name: 🚚 Deploy to Heroku
+        run: |
+          git remote add heroku https://git.heroku.com/${{ secrets.HEROKU_APP_NAME }}.git
+          git push heroku HEAD:main --force
+
+      - name: 🪵 Heroku Logs
+        run: |
+          heroku logs --app ${{ secrets.HEROKU_APP_NAME }} --num 100
