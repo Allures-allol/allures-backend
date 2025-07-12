@@ -1,0 +1,26 @@
+name: 🚀 Deploy to Heroku
+
+on:
+  push:
+    branches:
+      - main
+      - heroku-upd
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🔧 Set up Heroku CLI and deploy
+        uses: akhileshns/heroku-deploy@v3.13.15
+        with:
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
+          heroku_email: ${{ secrets.HEROKU_EMAIL }}
+          usedocker: false
+
+      - name: ✅ Done
+        run: echo "✅ Deploy завершен!"
