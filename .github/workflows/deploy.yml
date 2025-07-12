@@ -37,3 +37,6 @@ jobs:
           git remote add heroku https://git.heroku.com/${{ secrets.HEROKU_APP_NAME }}.git
           git push heroku HEAD:main --force
 
+      - name: 🪵 Heroku Logs
+        run: |
+          heroku logs --app ${{ secrets.HEROKU_APP_NAME }} --num 100
