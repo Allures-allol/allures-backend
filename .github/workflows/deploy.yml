@@ -3,8 +3,7 @@ name: 🚀 Deploy to Heroku
 on:
   push:
     branches:
-      - main
-      - heroku-upd
+      - heroku-deploy
 
 jobs:
   deploy:
