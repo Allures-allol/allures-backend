@@ -12,7 +12,7 @@ from common.models.payment import Payment
 from services.admin_service.schemas.admin_schemas import AdminUserCreate, AdminUserOut, AdminLogin
 from services.admin_service.crud import admin_crud
 from services.subscription_service.utils.security import verify_password
-from services.subscription_service.routers.subscription_crud import activate_subscription_from_payment
+from services.subscription_service.crud.subscription_crud import activate_subscription_from_payment
 
 router = APIRouter()
 
