@@ -17,6 +17,7 @@ import common.models
 from services.review_service.models.review import Review
 from services.review_service.models.recommendation import Recommendation
 
+
 # Импорт роутеров всех микросервисов
 from services.product_service.api.routes import router as product_router
 from services.review_service.api.routes import router as review_router
@@ -25,8 +26,8 @@ from services.payment_service.routers.payment import router as payment_router
 from services.discount_service.routers.discount import router as discount_router
 from services.auth_service.routers.auth import router as auth_router
 from services.dashboard_service.routers.dashboard import router as dashboard_router
-from services.admin_service.routers.admin_router import router as admin_router                # 🆕
-from services.subscription_service.routers.subscription_routers import router as subscription_router  # 🆕
+from services.admin_service.routers.admin_router import router as admin_router
+from services.subscription_service.routers.subscription_routers import router as subscription_router
 from services.review_service.models.review import Review
 
 # Загрузка переменных окружения
@@ -41,7 +42,7 @@ app.include_router(sales_router, prefix="/sales", tags=["Sales"])
 app.include_router(payment_router, prefix="/payment", tags=["Payment"])
 app.include_router(discount_router, prefix="/discounts", tags=["Discounts"])
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
-app.include_router(dashboard_router, prefix="/dashboard", tags=["Dashboard"])
+# app.include_router(dashboard_router, prefix="/dashboard", tags=["Dashboard"])
 app.include_router(admin_router, prefix="/admin", tags=["Admin"])
 app.include_router(subscription_router, prefix="/subscription", tags=["Subscription"])
 
@@ -51,8 +52,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "https://allures-allol.com",
-        "https://allures-frontend.vercel.app",
+        "https://api.alluresallol.com",
+        "https://alluresallol.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -60,7 +61,7 @@ app.add_middleware(
 )
 
 # db_url = os.getenv("MAINDB_URL")
-# print("🔗 MAINDB_URL:", db_url)
+# print(" MAINDB_URL:", db_url)
 
 # Проверка подключения к БД
 @app.on_event("startup")
@@ -73,19 +74,19 @@ def startup_event():
     db = next(db_gen)
     try:
         db.execute(text("SELECT 1"))
-        print("✅ PostgreSQL подключение успешно (Allures Backend)")
+        print(" PostgreSQL подключение успешно (Allures Backend)")
 
         # Создание таблиц
         Base.metadata.create_all(bind=engine)
-        print("📦 Таблицы успешно созданы (если не существовали)")
+        print(" Таблицы успешно созданы (если не существовали)")
 
     except Exception as e:
-        print(f"❌ Ошибка подключения к PostgreSQL: {e}")
+        print(f" Ошибка подключения к PostgreSQL: {e}")
     finally:
         db.close()
 
 @app.get("/")
 def root():
-    return {"message": "Hello from Allures Backend"}
+    return {"message": "Allures Backend"}
 
 # uvicorn main:app --reload --port 8008

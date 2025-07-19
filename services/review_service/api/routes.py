@@ -59,8 +59,6 @@ def reviews_by_subscription(
 def get_all_recommendations(db: Session = Depends(get_db)):
     return db.query(Recommendation).all()
 
-
-
 @router.get("/recommendations/user/{user_id}", response_model=List[RecommendationOut])
 def get_user_recommendations(user_id: int, db: Session = Depends(get_db)):
     return (
@@ -69,7 +67,6 @@ def get_user_recommendations(user_id: int, db: Session = Depends(get_db)):
         .order_by(Recommendation.recommended_at.desc())
         .all()
     )
-
 
 @router.post("/recommendations/", response_model=List[ProductOut])
 def get_recommendations(data: QueryRequest, db: Session = Depends(get_db)):

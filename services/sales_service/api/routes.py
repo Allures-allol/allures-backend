@@ -27,7 +27,7 @@ from services.sales_service.api.controller import fetch_sales, create_product_sa
 router = APIRouter()
 
 
-# ✅ Создание продукта
+# Создание продукта
 @router.post("/products/", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     db_product = ProductModel(**product.dict())
@@ -37,7 +37,7 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     return db_product
 
 
-# ✅ Получение всех продуктов (с category_name)
+# Получение всех продуктов (с category_name)
 @router.get("/products/", response_model=List[ProductOut])
 def get_filtered_products(
     db: Session = Depends(get_db),
@@ -90,7 +90,7 @@ def get_filtered_products(
     ]
 
 
-# ✅ Обновление продукта
+# Обновление продукта
 @router.put("/products/{product_id}", response_model=ProductOut)
 def update_product(product_id: int, updated: ProductUpdate, db: Session = Depends(get_db)):
     product = db.query(ProductModel).filter(ProductModel.id == product_id).first()
@@ -105,7 +105,7 @@ def update_product(product_id: int, updated: ProductUpdate, db: Session = Depend
     return product
 
 
-# ✅ Получение всех продаж
+# Получение всех продаж
 @router.get("/sales/", response_model=List[SalesOut])
 def get_all_sales(db: Session = Depends(get_db)):
     try:
@@ -118,7 +118,7 @@ def get_all_sales(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-# ✅ Создание продажи с user_id
+# Создание продажи с user_id
 @router.post("/sales/", response_model=SalesOut, status_code=status.HTTP_201_CREATED)
 def create_sale(sale: SalesCreate, db: Session = Depends(get_db)):
     try:
@@ -127,8 +127,7 @@ def create_sale(sale: SalesCreate, db: Session = Depends(get_db)):
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Failed to create sale")
 
-
-# ✅ Получение статистики продаж по параметрам
+# Получение статистики продаж по параметрам
 @router.post("/retrieve_sales", response_model=List[SalesStats])
 def get_sales_for_product(params: SalesRequestParams, db: Session = Depends(get_db)):
     try:
@@ -153,8 +152,7 @@ def get_sales_for_product(params: SalesRequestParams, db: Session = Depends(get_
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-
-# ✅ Получение всех продаж пользователя
+# Получение всех продаж пользователя
 @router.get("/sales/user/{user_id}", response_model=List[SalesOut])
 def get_sales_by_user(user_id: int, db: Session = Depends(get_db)):
     try:

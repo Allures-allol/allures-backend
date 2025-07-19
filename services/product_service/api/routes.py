@@ -25,8 +25,7 @@ from common.custom_exceptions import ProductNotFoundException, ProductInventoryU
 
 router = APIRouter()
 
-# 🔧 Вспомогательная функция
-
+# Вспомогательная функция
 def create_inventory(inventory: InventoryCreate, db: Session):
     db_inventory = Inventory(**inventory.dict())
     db.add(db_inventory)
@@ -35,7 +34,7 @@ def create_inventory(inventory: InventoryCreate, db: Session):
     return db_inventory
 
 
-# ✅ Получение всех продуктов с категорией
+# Получение всех продуктов с категорией
 @router.get("/", response_model=List[ProductOut])
 def get_all_products(db: Session = Depends(get_db)):
     products = (
@@ -65,7 +64,7 @@ def get_all_products(db: Session = Depends(get_db)):
     ]
 
 
-# ✅ Получение продукта по ID
+# Получение продукта по ID
 @router.get("/{product_id}", response_model=ProductOut)
 def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
     product = db.query(ProductModel).options(joinedload(ProductModel.category)).filter(ProductModel.id == product_id).first()
@@ -90,7 +89,7 @@ def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
     )
 
 
-# ✅ Обновление продукта
+# Обновление продукта
 @router.put("/{product_id}", response_model=ProductOut)
 def update_product(product_id: int, update: ProductUpdate, db: Session = Depends(get_db)):
     try:
@@ -137,7 +136,7 @@ def update_product(product_id: int, update: ProductUpdate, db: Session = Depends
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-# ✅ Создание новой категории
+# Создание новой категории
 @router.post("/categories/", response_model=CategorySchema)
 def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     try:
@@ -151,7 +150,7 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
-# ✅ Получение категории по ID
+# Получение категории по ID
 @router.get("/categories/{category_id}", response_model=CategorySchema)
 def get_category_by_id(category_id: int, db: Session = Depends(get_db)):
     category = db.query(CategoryModel).filter(CategoryModel.category_id == category_id).first()

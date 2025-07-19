@@ -50,7 +50,7 @@ async def create_nowpayment(data: NowPaymentRequest):
 async def payment_webhook(request: Request, db: Session = Depends(get_db)):
     try:
         data = await request.json()
-        print("🔔 Webhook received:", data)
+        print(" Webhook received:", data)
 
         if data.get("payment_status") == "finished":
             # 💾 Сохраняем платеж в БД

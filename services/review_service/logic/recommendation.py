@@ -1,4 +1,4 @@
-# ✅ services/review_service/logic/recommendation.py
+# services/review_service/logic/recommendation.py
 
 from services.review_service.sentiment.analyzer import analyze_sentiment
 from services.review_service.models.recommendation import Recommendation

@@ -36,7 +36,7 @@ app.add_middleware(
 app.include_router(subscription_router, prefix="/subscription", tags=["Subscription"])
 
 # db_url = os.getenv("MAINDB_URL")
-# print("🔗 MAINDB_URL:", db_url)
+# print(" MAINDB_URL:", db_url)
 
 @app.on_event("startup")
 def startup_event():
@@ -44,9 +44,9 @@ def startup_event():
     db = next(db_gen)
     try:
         db.execute(text("SELECT 1"))
-        print("✅ PostgreSQL подключение успешно (Subscription Service)")
+        print(" PostgreSQL подключение успешно (Subscription Service)")
     except Exception as e:
-        print(f"❌ Ошибка подключения к PostgreSQL: {e}")
+        print(f" Ошибка подключения к PostgreSQL: {e}")
     finally:
         db.close()
 

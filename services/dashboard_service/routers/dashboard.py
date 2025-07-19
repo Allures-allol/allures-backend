@@ -21,7 +21,7 @@ SALES_SERVICE_URL = settings.SALES_SERVICE_URL
 REVIEW_SERVICE_URL = settings.REVIEW_SERVICE_URL
 DISCOUNT_SERVICE_URL = settings.DISCOUNT_SERVICE_URL
 
-# ✅ Функция логирования входа в дашборд
+# Функция логирования входа в дашборд
 def save_dashboard_log(db: Session, user_id: int, user_agent: str, notes: str = "Вхід у кабінет"):
     try:
         log = DashboardLog(
@@ -33,7 +33,7 @@ def save_dashboard_log(db: Session, user_id: int, user_agent: str, notes: str = 
         db.commit()
     except Exception as e:
         db.rollback()
-        print(f"❌ Error saving dashboard log: {str(e)}")
+        print(f" Error saving dashboard log: {str(e)}")
 
 
 @router.get("/logs/", response_model=List[DashboardLogOut])
@@ -46,7 +46,7 @@ def get_logs(
 ):
     query = db.query(DashboardLog)
 
-    # 🔎 Фильтры
+    # Фильтры
     if user_id is not None:
         query = query.filter(DashboardLog.user_id == user_id)
     if from_date is not None:
@@ -54,7 +54,7 @@ def get_logs(
     if to_date is not None:
         query = query.filter(DashboardLog.fetched_at <= to_date)
 
-    # 🔃 Сортировка
+    # Сортировка
     if sort_desc:
         query = query.order_by(DashboardLog.fetched_at.desc())
     else:
@@ -63,7 +63,7 @@ def get_logs(
     return query.all()
 
 
-# ✅ Получение всех пользователей
+# Получение всех пользователей
 @router.get("/all/users", response_model=List[dict])
 async def get_all_users():
     try:
@@ -75,7 +75,7 @@ async def get_all_users():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Помилка при отриманні користувачів: {str(e)}")
 
-# ✅ Получение всех продаж
+# Получение всех продаж
 @router.get("/all/sales", response_model=List[Sale])
 async def get_all_sales():
     try:
@@ -86,7 +86,7 @@ async def get_all_sales():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Помилка при отриманні продажів: {str(e)}")
 
-# ✅ Получение всех отзывов
+# Получение всех отзывов
 @router.get("/all/reviews", response_model=List[Review])
 async def get_all_reviews():
     try:
@@ -97,7 +97,7 @@ async def get_all_reviews():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Помилка при отриманні відгуків: {str(e)}")
 
-# ✅ Получение всех скидок
+# Получение всех скидок
 @router.get("/all/discounts", response_model=List[Discount])
 async def get_all_discounts():
     try:
@@ -108,7 +108,7 @@ async def get_all_discounts():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Помилка при отриманні знижок: {str(e)}")
 
-# ✅ Получение всех рекомендаций
+# Получение всех рекомендаций
 @router.get("/all/recommendations", response_model=List[Recommendation])
 async def get_all_recommendations():
     try:
@@ -148,12 +148,12 @@ async def get_user_profile(user_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Невідома помилка: {str(e)}")
 
-# ✅ эндпоинт для теста
+# эндпоинт для теста
 @router.get("/stats")
 def get_dashboard_stats():
     return {"status": "ok"}
 
-# ✅ Основной эндпоинт дашборда (логирует вход и возвращает агрегированные данные)
+# Основной эндпоинт дашборда (логирует вход и возвращает агрегированные данные)
 @router.get("/{user_id}", response_model=DashboardOut)
 async def get_dashboard(user_id: int, request: Request, db: Session = Depends(get_db)):
     user_agent = request.headers.get("user-agent", "unknown")

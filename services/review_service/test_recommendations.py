@@ -1,32 +1,29 @@
 # test_recommendations.py
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from services.review_service.models.product_proxy import ProductDb
+from common.models.products import Product
 from services.review_service.models.review import Review
 from services.review_service.sentiment.analyzer import analyze_sentiment
 from services.review_service.logic.recommendation import process_user_query, keyword_match
-from datetime import datetime
+from services.review_service.common.config.settings_review import settings_review
 
-# 1️⃣ Настройки подключения к БД
-ALLURES_DB_URL = "mssql+pyodbc://localhost,1433/AlluresDb?driver=ODBC%20Driver%2017%20for%20SQL%20Server&;Trusted_Connection=yes"
-REVIEW_DB_URL = "mssql+pyodbc://localhost,1433/ReviewDb?driver=ODBC%20Driver%2017%20for%20SQL%20Server&;Trusted_Connection=yes"
+# Подключение к базе данных
+DATABASE_URL = settings_review.MAINDB_URL
+engine = create_engine(DATABASE_URL, future=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-ProductSession = sessionmaker(bind=create_engine(ALLURES_DB_URL))
-ReviewSession = sessionmaker(bind=create_engine(REVIEW_DB_URL))
-
-# 2️⃣ Временная модель продукта
-class Product:
-    def __init__(self, id, name, category, description, reviews):
+# Временная модель продукта
+class ProductData:
+    def __init__(self, id, name, category_name, description, reviews):
         self.id = id
         self.name = name
-        self.category = category
+        self.category_name = category_name
         self.description = description
         self.reviews = reviews
         self.sentiment_score = 0
         self.pos_percent = 0
 
-# 3️⃣ Подсчёт отзывов
+# Оценка отзывов
 def evaluate_reviews(reviews):
     total_pos, total_neg = 0, 0
     for text in reviews:
@@ -39,15 +36,13 @@ def evaluate_reviews(reviews):
     score = (avg_pos - avg_neg + 100) / 2
     return avg_pos, avg_neg, score
 
-# 4️⃣ Основная логика рекомендаций
+# Логика рекомендаций
 def recommend(query):
-    product_db = ProductSession()
-    review_db = ReviewSession()
-
+    db = SessionLocal()
     try:
         keywords = process_user_query(query)
-        products = product_db.query(ProductDb).all()
-        reviews = review_db.query(Review).all()
+        products = db.query(Product).all()
+        reviews = db.query(Review).all()
 
         product_reviews = {}
         for review in reviews:
@@ -55,25 +50,36 @@ def recommend(query):
 
         enriched = []
         for p in products:
-            if p.id not in product_reviews:
+            if p.id not in product_reviews or not p.category:
                 continue
             revs = product_reviews[p.id]
             avg_pos, avg_neg, score = evaluate_reviews(revs)
-            relevance = keyword_match(Product(p.id, p.name, p.category_name, p.description, revs), keywords)
+            relevance = keyword_match(
+                ProductData(p.id, p.name, p.category.name if p.category else "—", p.description, revs),
+                keywords
+            )
             final_score = relevance * 50 + score * 0.5
             enriched.append((p, round(avg_pos, 2), round(score, 2), round(final_score, 2)))
 
         enriched.sort(key=lambda x: x[3], reverse=True)
         top = enriched[:5]
 
-        print(f"\n🔎 Топ-5 рекомендаций по запросу: \"{query}\"")
+        print(f"\n Топ-5 рекомендаций по запросу: \"{query}\"")
         for p, pos, senti, total in top:
-            print(f"✅ {p.name} ({p.category_name}) | pos: {pos}% | score: {senti} | общий: {total}")
+            print(f" {p.name} ({p.category.name if p.category else '—'}) | pos: {pos}% | score: {senti} | общий: {total}")
     finally:
-        product_db.close()
-        review_db.close()
+        db.close()
 
-# 5️⃣ Запуск
+# Тест для pytest
+def test_recommend_runs_without_errors():
+    try:
+        recommend("рюкзак")
+        recommend("куртка")
+        recommend("ботинки")
+    except Exception as e:
+        assert False, f"Ошибка при выполнении recommend(): {e}"
+
+# Локальный запуск
 if __name__ == "__main__":
     recommend("удобный рюкзак")
     recommend("зимняя куртка")

@@ -8,14 +8,14 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
 
-    # 🔐 API ключи
+    # API ключи
     NOWPAYMENTS_API_KEY: str = Field(..., alias="NOWPAYMENTS_API_KEY")
     NGROK_WEBHOOK_URL: str = Field(..., alias="NGROK_WEBHOOK_URL")
 
-    # 💾 База данных
+    # База данных
     MAINDB_URL: str = Field(..., alias="MAINDB_URL")
 
-    # 🌐 Ссылки на микросервисы
+    # Ссылки на микросервисы
     PRODUCT_SERVICE_URL: str = Field(..., alias="PRODUCT_SERVICE_URL")
     SALES_SERVICE_URL: str = Field(..., alias="SALES_SERVICE_URL")
     REVIEW_SERVICE_URL: str = Field(..., alias="REVIEW_SERVICE_URL")
@@ -23,7 +23,9 @@ class Settings(BaseSettings):
     PROFILE_SERVICE_URL: str = Field(..., alias="PROFILE_SERVICE_URL")
     PAYMENTS_SERVICE_URL: str = Field(..., alias="PAYMENTS_SERVICE_URL")
     DISCOUNT_SERVICE_URL: str = Field(..., alias="DISCOUNT_SERVICE_URL")
-    DASHBOARD_SERVICE_URL: str = Field(..., alias="DASHBOARD_SERVICE_URL")
+
+    # TODO: включить DASHBOARD_SERVICE_URL после запуска dashboard_service
+    # DASHBOARD_SERVICE_URL: str = Field(..., alias="DASHBOARD_SERVICE_URL")
     ADMIN_SERVICE_URL: str = Field(..., alias="ADMIN_SERVICE_URL")
     SUBSCRIPTION_SERVICE_URL: str = Field(..., alias="SUBSCRIPTION_SERVICE_URL")
 
@@ -36,6 +38,3 @@ class Settings(BaseSettings):
     )
 
 settings = Settings()
-
-print("🔧 [SETTINGS] SALES_SERVICE_URL:", settings.SALES_SERVICE_URL)
-print("🔧 [SETTINGS] REVIEW_SERVICE_URL:", settings.REVIEW_SERVICE_URL)

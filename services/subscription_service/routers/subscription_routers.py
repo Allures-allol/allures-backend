@@ -16,24 +16,24 @@ from services.subscription_service.crud.subscription_crud import activate_subscr
 
 router = APIRouter()
 
-# ✅ Получить список подписок по языку (по умолчанию — 'uk')
+# Получить список подписок по языку (по умолчанию — 'uk')
 @router.get("/", response_model=List[SubscriptionOut])
 def get_subscriptions(language: str = "uk", db: Session = Depends(get_db)):
     return subscription_crud.get_all_subscriptions(db, language)
 
-# ✅ POST /start-free-subscription — вручную активировать бесплатную подписку
+# POST /start-free-subscription — вручную активировать бесплатную подписку
 @router.post("/start-free-subscription")
 def start_free_subscription(user_id: int, language: str = "uk", db: Session = Depends(get_db)):
     new_sub = subscription_crud.activate_subscription_by_code(user_id=user_id, code="free", language=language, db=db)
     return {"message": "Бесплатная подписка успешно активирована", "subscription_id": new_sub.id}
 
-# ✅ POST /activate — активировать платную подписку по оплате
+# POST /activate — активировать платную подписку по оплате
 @router.post("/activate")
 def activate_subscription(user_id: int, payment_id: int, db: Session = Depends(get_db)):
     new_sub = subscription_crud.activate_subscription_from_payment(user_id=user_id, payment_id=payment_id, db=db)
     return {"message": "Подписка успешно активирована", "subscription_id": new_sub.id}
 
-# ✅ GET /active — получить активную подписку пользователя
+# GET /active — получить активную подписку пользователя
 @router.get("/active", response_model=UserSubscriptionOut)
 def get_active_subscription(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter_by(id=user_id).first()

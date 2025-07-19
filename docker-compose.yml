@@ -1,29 +1,7 @@
-version: "3.9"
 
 services:
-  allures-backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: allures-backend
-    ports:
-      - "8008:8000"  # хост:контейнер
-    volumes:
-      - .:/app
-    working_dir: /app
-    env_file:
-      - .env
-    environment:
-      PYTHONPATH: /app:/app/common
-      MAINDB_URL: ${MAINDB_URL}  # строка подключения из .env
-    command: >
-      uvicorn main:app --host 0.0.0.0 --port 8000
-    restart: always
-    depends_on:
-      - postgres-db  # если используешь БД в связке
-
   postgres-db:
-    image: postgres:15
+    image: postgres:14
     container_name: postgres-db
     restart: always
     environment:
@@ -34,6 +12,34 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - allures-network
+
+  allures-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: allures-backend
+    ports:
+      - "8008:8000"
+    volumes:
+      - .:/app
+    working_dir: /app
+    env_file:
+      - .env
+    environment:
+      PYTHONPATH: /app:/app/common
+    command: >
+      uvicorn main:app --host 0.0.0.0 --port 8000
+    depends_on:
+      - postgres-db
+    networks:
+      - allures-network
 
 volumes:
   postgres_data:
+
+networks:
+  allures-network:
+
+

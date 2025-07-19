@@ -1,4 +1,4 @@
-# 📁 common/models/payment.py
+# common/models/payment.py
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from common.db.base import Base
 from datetime import datetime

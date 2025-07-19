@@ -29,8 +29,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",              # локальный React
         "http://127.0.0.1:3000",
-        "https://allures-allol.com",          # прод-версия
-        "https://allures-frontend.vercel.app" # Vercel
+        "https://api.alluresallol.com",
+        "https://alluresallol.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -38,7 +38,7 @@ app.add_middleware(
 )
 
 # db_url = os.getenv("MAINDB_URL")
-# print("🔗 MAINDB_URL:", db_url)
+# print(" MAINDB_URL:", db_url)
 
 # Главная страница
 @app.get("/")
@@ -52,9 +52,9 @@ def startup_event():
     db = next(db_gen)
     try:
         db.execute(text("SELECT 1"))
-        print("✅ PostgreSQL подключение успешно (Sales Service)")
+        print(" PostgreSQL подключение успешно (Sales Service)")
     except Exception as e:
-        print(f"❌ Ошибка подключения к PostgreSQL: {e}")
+        print(f" Ошибка подключения к PostgreSQL: {e}")
     finally:
         db.close()
 

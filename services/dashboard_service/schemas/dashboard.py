@@ -12,7 +12,7 @@ class UserProfileUpdate(BaseModel):
     bonus_balance: Optional[int]
     delivery_address: Optional[str]
 
-# 📊 Dashboard общая информация
+# Dashboard общая информация
 class DashboardOut(BaseModel):
     id: int
     full_name: Optional[str]
@@ -29,7 +29,7 @@ class DashboardOut(BaseModel):
     class Config:
         from_attributes = True
 
-# ✅ Лог входа в дашборд (DashboardLog)
+# Лог входа в дашборд (DashboardLog)
 class DashboardLogOut(BaseModel):
     id: int
     user_id: int
@@ -44,7 +44,7 @@ class UpdateResponse(BaseModel):
     message: str
     user_id: int
 
-# ✅ Продажа (Sales)
+# Продажа (Sales)
 class Sale(BaseModel):
     id: int
     product_id: int
@@ -58,7 +58,7 @@ class Sale(BaseModel):
     class Config:
         from_attributes = True
 
-# ✅ Отзыв (Review)
+# Отзыв (Review)
 class Review(BaseModel):
     id: int
     product_id: int
@@ -72,7 +72,7 @@ class Review(BaseModel):
     class Config:
         from_attributes = True
 
-# ✅ Скидка (Discount)
+# Скидка (Discount)
 class Discount(BaseModel):
     id: int
     code: str
@@ -83,7 +83,7 @@ class Discount(BaseModel):
     class Config:
         from_attributes = True
 
-# ✅ Рекомендация (Recommendation)
+# Рекомендация (Recommendation)
 class Recommendation(BaseModel):
     id: int
     user_id: int

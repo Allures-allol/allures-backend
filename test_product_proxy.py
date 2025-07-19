@@ -1,27 +1,27 @@
-# services/product_service/test_product_proxy.py
-import sys
+# test_review_product_proxy.py
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 import os
-from sqlalchemy.orm import Session
+from common.models.products import Product
 
-# ✅ Добавляем корень проекта в sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+load_dotenv()
 
-from common.db.product_connection import ProductSessionLocal
-from services.review_service.models.product_proxy import ProductDb
+MAINDB_URL = os.getenv("MAINDB_URL")
+if not MAINDB_URL:
+    raise ValueError(" MAINDB_URL не задан в .env")
 
-def main():
-    db: Session = ProductSessionLocal()
+engine = create_engine(MAINDB_URL, echo=False, future=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Функция-тест для pytest
+def test_products_query():
+    db = SessionLocal()
     try:
-        print("🧪 Загружаем продукты из AlluresDb...")
-
-        products = db.query(ProductDb).limit(5).all()
-        if not products:
-            print("⚠️ Нет продуктов в базе данных.")
-        else:
-            for p in products:
-                print(f"✅ ID: {p.id} | Название: {p.name} | Категория: {p.category_name} | Описание: {p.description}")
+        products = db.query(Product).limit(1).all()
+        assert isinstance(products, list)
+        print(" Успешный запрос к таблице products.")
+    except Exception as e:
+        assert False, f" Ошибка запроса к products: {e}"
     finally:
         db.close()
-
-if __name__ == "__main__":
-    main()

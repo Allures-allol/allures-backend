@@ -1,4 +1,4 @@
-# 📁 common/models/subscription.py
+# common/models/subscription.py
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime

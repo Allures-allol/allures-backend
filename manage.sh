@@ -41,7 +41,7 @@ status_all() {
 }
 
 clean_docker() {
-  echo "🧹 Cleaning up unused Docker images and volumes..."
+  echo " Cleaning up unused Docker images and volumes..."
   docker system prune -f
   docker volume prune -f
 }
@@ -80,8 +80,8 @@ run_single() {
       docker compose -f $DB_COMPOSE_FILE up -d --build
       ;;
     *)
-      echo "❌ Unknown service: $SERVICE"
-      echo "💡 Available services: product-service, sales-service, review-service, profile-service, dashboard-service, discount-service, payment-service, admin-service, subscription-service, db"
+      echo " Unknown service: $SERVICE"
+      echo " Available services: product-service, sales-service, review-service, profile-service, dashboard-service, discount-service, payment-service, admin-service, subscription-service, db"
       exit 1
       ;;
   esac
@@ -113,7 +113,7 @@ case "$1" in
     run_single "$2"
     ;;
   *)
-    echo "🛠  Usage: $0 {start|stop|restart|logs|status|clean|run <service>}"
+    echo "  Usage: $0 {start|stop|restart|logs|status|clean|run <service>}"
     exit 1
     ;;
 esac

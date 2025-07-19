@@ -1,4 +1,4 @@
-#main.py payment_service
+#services/payment_service/main.py
 import sys
 import os
 import common.utils.env_loader
@@ -16,45 +16,42 @@ from common.config.settings import settings
 from services.payment_service.common.config.settings_payment import settings_payment
 from services.payment_service.routers.payment import router as payment_router
 
-# Загрузка .env
 load_dotenv()
 
 app = FastAPI(title="Payment Service")
 
-# 🌍 CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "https://allures-allol.com",
-        "https://allures-frontend.vercel.app",
+        "https://api.alluresallol.com",
+        "https://alluresallol.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 🔗 Подключаем маршруты
 app.include_router(payment_router, prefix="/payment", tags=["Payment Methods"])
 
 # db_url = os.getenv("MAINDB_URL")
 # print("🔗 MAINDB_URL:", db_url)
 
-# ✅ Проверка подключения к PostgreSQL
+# Проверка подключения к PostgreSQL
 @app.on_event("startup")
 def startup_event():
     db_gen = get_db()
     db = next(db_gen)
     try:
         db.execute(text("SELECT 1"))
-        print("✅ PostgreSQL подключение успешно (Payment Service)")
+        print(" PostgreSQL подключение успешно (Payment Service)")
     except Exception as e:
-        print(f"❌ Ошибка подключения к PostgreSQL: {e}")
+        print(f" Ошибка подключения к PostgreSQL: {e}")
     finally:
         db.close()
 
-# 🌐 Корень
+# Корень
 @app.get("/")
 def read_root():
     return {"message": "Payment Service is running"}

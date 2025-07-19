@@ -27,22 +27,22 @@ load_dotenv()
 
 app = FastAPI(title="Product Service")
 
-# 🔧 Проверка: вывод URL подключения
+# Проверка: вывод URL подключения
 print("▶ MAINDB_URL из settings:", settings.MAINDB_URL)
 
-# 🔗 Подключаем REST маршруты
+# Подключаем REST маршруты
 app.include_router(product_router, prefix="/products", tags=["Products"])
 
 app.include_router(review_router, prefix="/reviews", tags=["Reviews"])
 
-# 🌍 CORS
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "https://allures-allol.com",
-        "https://allures-frontend.vercel.app",
+        "https://api.alluresallol.com",
+        "https://alluresallol.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -50,22 +50,22 @@ app.add_middleware(
 )
 
 # db_url = os.getenv("MAINDB_URL")
-# print("🔗 MAINDB_URL:", db_url)
+# print(" MAINDB_URL:", db_url)
 
-# ✅ Проверка подключения к PostgreSQL
+# Проверка подключения к PostgreSQL
 @app.on_event("startup")
 def startup_event():
     db_gen = get_db()
     db = next(db_gen)
     try:
         db.execute(text("SELECT 1"))
-        print("✅ PostgreSQL подключение успешно (Product Service)")
+        print(" PostgreSQL подключение успешно (Product Service)")
     except Exception as e:
-        print(f"❌ Ошибка подключения к PostgreSQL: {e}")
+        print(f" Ошибка подключения к PostgreSQL: {e}")
     finally:
         db.close()
 
-# 🌐 Корень
+# Корень
 @app.get("/")
 def root():
     return {"message": "Product Service is running"}
@@ -75,9 +75,9 @@ def startup_event():
     db = next(db_gen)
     try:
         db.execute(text("SELECT 1"))
-        print("✅ PostgreSQL подключение успешно (Product Service)")
+        print(" PostgreSQL подключение успешно (Product Service)")
     except Exception as e:
-        print(f"❌ Ошибка подключения к PostgreSQL: {e}")
+        print(f" Ошибка подключения к PostgreSQL: {e}")
     finally:
         db.close()
 

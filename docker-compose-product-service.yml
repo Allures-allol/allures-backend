@@ -12,7 +12,7 @@ services:
       - ./common:/app/common
     working_dir: /app
     env_file:
-      - .env  # ⬅️ содержит MAINDB_URL и прочее
+      - .env  # содержит MAINDB_URL и прочее
     environment:
       PYTHONPATH: /app:/app/common
       MAINDB_URL: ${MAINDB_URL}

@@ -19,14 +19,14 @@ load_dotenv()
 
 app = FastAPI(title="Authorization Service")
 
-# 🌍 CORS — для фронта и локальной разработки
+# CORS — для фронта и локальной разработки
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "https://allures-allol.com",
-        "https://allures-frontend.vercel.app",
+        "https://api.alluresallol.com",
+        "https://alluresallol.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -36,20 +36,20 @@ app.add_middleware(
 # 🔗 Подключение роутеров
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 
-# ✅ Проверка подключения к PostgreSQL
+# Проверка подключения к PostgreSQL
 @app.on_event("startup")
 def startup_event():
     db_gen = get_db()
     db = next(db_gen)
     try:
         db.execute(text("SELECT 1"))
-        print("✅ PostgreSQL подключение успешно (Authorization Service)")
+        print(" PostgreSQL подключение успешно (Authorization Service)")
     except Exception as e:
-        print(f"❌ Ошибка подключения к PostgreSQL: {e}")
+        print(f" Ошибка подключения к PostgreSQL: {e}")
     finally:
         db.close()
 
-# 🌐 Корневой эндпоинт
+# Корневой эндпоинт
 @app.get("/")
 def read_root():
     return {"message": "Authorization Service is running"}

@@ -7,5 +7,5 @@ Date: 2025-05-17
 
 - Product microservice created
 - Sales microservice connected
-- MSSQL integration
+- PostgreSQL integration
 - Dockerized deployment

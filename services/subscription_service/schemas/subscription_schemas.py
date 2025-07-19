@@ -4,8 +4,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-
-# 📦 Базовая схема (без id, используется в create/update)
+# Базовая схема (без id, используется в create/update)
 class SubscriptionBase(BaseModel):
     code: str
     language: str
@@ -18,28 +17,25 @@ class SubscriptionBase(BaseModel):
     stats_access: bool
     description: Optional[str]
 
-
-# 📤 Подписка из БД
+# Подписка из БД
 class SubscriptionOut(SubscriptionBase):
     id: int
 
     class Config:
         from_attributes = True
 
-
-# 📊 Статус подписки
+# Статус подписки
 class SubscriptionStatus(str, Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
 
 
-# 🔄 Запрос на обновление подписки
+# Запрос на обновление подписки
 class UpdateSubscriptionRequest(BaseModel):
     login: str
     new_status: SubscriptionStatus
 
-
-# 📤 Подписка пользователя
+# Подписка пользователя
 class UserSubscriptionOut(BaseModel):
     id: int
     user_id: int

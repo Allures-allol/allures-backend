@@ -1,6 +1,4 @@
 # services/subscription_service/crud/subscription_crud.py
-# ✅ CRUD-функции для работы с подписками (оптимизированные и чистые)
-
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from datetime import datetime, timedelta
@@ -8,32 +6,32 @@ from datetime import datetime, timedelta
 from common.models.subscriptions import Subscription, UserSubscription
 from common.models.payment import Payment
 
-# ✅ Получить все подписки (можно использовать с фильтром по языку)
+# Получить все подписки (можно использовать с фильтром по языку)
 def get_all_subscriptions(db: Session, language: str = "uk"):
     return db.query(Subscription).filter_by(language=language).all()
 
-# ✅ Получить подписку по коду и языку
+# Получить подписку по коду и языку
 def get_subscription_by_code(db: Session, code: str, language: str = "uk"):
     return db.query(Subscription).filter_by(code=code, language=language).first()
 
-# ✅ Получить активную подписку пользователя
+# Получить активную подписку пользователя
 def get_user_active_subscription(db: Session, user_id: int):
     user_sub = db.query(UserSubscription).filter_by(user_id=user_id, is_active=True).first()
     if not user_sub:
         raise HTTPException(status_code=404, detail="Нет активной подписки")
     return user_sub
 
-# ✅ Получить всю историю подписок пользователя
+# Получить всю историю подписок пользователя
 def get_user_subscription_history(user_id: int, db: Session):
     return db.query(UserSubscription).filter_by(user_id=user_id).order_by(UserSubscription.start_date.desc()).all()
 
-# ✅ Деактивировать текущую подписку
+# Деактивировать текущую подписку
 def deactivate_user_subscription(user_id: int, db: Session):
     updated = db.query(UserSubscription).filter_by(user_id=user_id, is_active=True).update({"is_active": False})
     db.commit()
     return updated
 
-# ✅ Изменить статус автопродления
+# Изменить статус автопродления
 def set_auto_renew(user_id: int, enable: bool, db: Session):
     active_sub = db.query(UserSubscription).filter_by(user_id=user_id, is_active=True).first()
     if not active_sub:
@@ -43,7 +41,7 @@ def set_auto_renew(user_id: int, enable: bool, db: Session):
     db.commit()
     return 1
 
-# ✅ Активировать подписку по платежу
+# Активировать подписку по платежу
 def activate_subscription_from_payment(user_id: int, payment_id: int, db: Session):
     payment = db.query(Payment).filter_by(id=payment_id).first()
     if not payment:
@@ -69,7 +67,7 @@ def activate_subscription_from_payment(user_id: int, payment_id: int, db: Sessio
     db.refresh(new_sub)
     return new_sub
 
-# ✅ Активировать подписку по коду (например, free)
+# Активировать подписку по коду (например, free)
 def activate_subscription_by_code(user_id: int, code: str, language: str, db: Session):
     sub = get_subscription_by_code(db, code, language)
     if not sub:

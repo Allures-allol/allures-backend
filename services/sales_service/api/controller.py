@@ -17,8 +17,7 @@ from common.custom_exceptions import (
     InsufficientInventoryException,
 )
 
-
-# 🔹 Получение деталей продукта по ID
+# Получение деталей продукта по ID
 def get_product_details_by_id(product_id: int):
     base_path = os.getenv("PRODUCT_SERVICE_URL", "http://product_service:8000")
     url = f"{base_path}/products/get_product/?product_id={product_id}"
@@ -26,14 +25,13 @@ def get_product_details_by_id(product_id: int):
     return requests.get(url=url)
 
 
-# 🔹 Обновление инвентаря продукта
+# Обновление инвентаря продукта
 def decrement_product_inventory(new_quantity: int, product_id: int):
     base_path = os.getenv("PRODUCT_SERVICE_URL", "http://product_service:8000")
     url = f"{base_path}/products/update/?product_id={product_id}"
     return requests.put(url=url, json={"current_inventory": new_quantity})
 
-
-# 🔹 Получение всех категорий для сопоставления ID -> name
+# Получение всех категорий для сопоставления ID -> name
 def get_all_categories():
     base_path = os.getenv("PRODUCT_SERVICE_URL", "http://product_service:8000")
     url = f"{base_path}/categories/"
@@ -42,11 +40,10 @@ def get_all_categories():
         if resp.status_code == HttpStatus.OK:
             return {c["category_id"]: c["name"] for c in resp.json()}
     except Exception as e:
-        print("❌ Ошибка при получении категорий:", e)
+        print(" Ошибка при получении категорий:", e)
     return {}
 
-
-# 🔹 Транзакция создания продажи
+# Транзакция создания продажи
 def create_product_sale_transaction(sale_data: dict, db: Session):
     try:
         db_sale = Sales(
@@ -95,7 +92,7 @@ def create_product_sale_transaction(sale_data: dict, db: Session):
         db.close()
 
 
-# 🔹 Получение и агрегация статистики продаж
+# Получение и агрегация статистики продаж
 def fetch_sales(db: Session, product_id=None, category_id=None, user_id=None, start_date=None, end_date=None, group_by=None):
     try:
         sales_query = db.query(
@@ -158,7 +155,7 @@ def fetch_sales(db: Session, product_id=None, category_id=None, user_id=None, st
         if not raw_sales:
             raise NoSalesDataFoundException("Нет данных о продажах")
 
-        # 🔹 Получение категорий и добавление имени категории
+        # Получение категорий и добавление имени категории
         category_map = get_all_categories()
         enriched_result = []
 

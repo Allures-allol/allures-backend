@@ -1,4 +1,4 @@
-# 📁 common/models/uploads.py
+# common/models/uploads.py
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from datetime import datetime
 from sqlalchemy.orm import relationship
