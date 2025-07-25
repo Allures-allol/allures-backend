@@ -18,6 +18,7 @@ from common.db.session import get_db
 from common.config.settings import settings
 
 from services.product_service.api.routes import router as product_router
+from services.product_service.api import image_classifier_router
 from services.review_service.api.routes import router as review_router
 # from graphql_app.schema import schema as review_schema
 # from strawberry.fastapi import GraphQLRouter
@@ -34,6 +35,8 @@ print("▶ MAINDB_URL из settings:", settings.MAINDB_URL)
 app.include_router(product_router, prefix="/products", tags=["Products"])
 
 app.include_router(review_router, prefix="/reviews", tags=["Reviews"])
+
+app.include_router(image_classifier_router.router, prefix="/product", tags=["AI classifier"])
 
 # CORS
 app.add_middleware(

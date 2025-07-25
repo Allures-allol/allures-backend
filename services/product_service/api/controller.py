@@ -11,7 +11,7 @@ from common.models.inventory import Inventory
 from services.product_service.api.schemas import (
     ProductCreate,
     ProductUpdate,
-    ProductBase as ProductOut,
+    ProductOut,
     CategoryCreate,
     Category as CategorySchema,
     InventoryCreate
@@ -25,7 +25,6 @@ from common.custom_exceptions import (
 router = APIRouter()
 
 
-# Вспомогательная функция для инвентаря
 def create_inventory(inventory: InventoryCreate, db: Session):
     db_inventory = Inventory(**inventory.dict())
     db.add(db_inventory)
@@ -34,11 +33,10 @@ def create_inventory(inventory: InventoryCreate, db: Session):
     return db_inventory
 
 
-# Создание нового продукта
 @router.post("/", response_model=ProductOut)
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     try:
-        category = db.query(CategoryModel).filter_by(id=product.category_id).first()
+        category = db.query(CategoryModel).filter_by(category_id=product.category_id).first()
         if not category:
             raise HTTPException(status_code=404, detail=f"Category '{product.category_id}' not found")
 
@@ -63,7 +61,6 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-# Обновление продукта
 @router.put("/{product_id}", response_model=ProductOut)
 def update_product_attribute(product_id: int, update: ProductUpdate, db: Session = Depends(get_db)):
     try:
@@ -95,7 +92,6 @@ def update_product_attribute(product_id: int, update: ProductUpdate, db: Session
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-# Получение продукта по ID
 @router.get("/{product_id}", response_model=ProductOut)
 def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
     try:
@@ -107,7 +103,6 @@ def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-# Получение всех продуктов
 @router.get("/", response_model=list[ProductOut])
 def get_all_products(db: Session = Depends(get_db)):
     try:
@@ -117,7 +112,6 @@ def get_all_products(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
-# Создание новой категории
 @router.post("/categories/", response_model=CategorySchema)
 def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     try:
@@ -131,10 +125,9 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
-# Получение категории по ID
 @router.get("/categories/{category_id}", response_model=CategorySchema)
 def get_category_by_id(category_id: int, db: Session = Depends(get_db)):
-    category = db.query(CategoryModel).filter(CategoryModel.id == category_id).first()
+    category = db.query(CategoryModel).filter(CategoryModel.category_id == category_id).first()
     if category is None:
         raise HTTPException(status_code=404, detail=f"Category with ID {category_id} not found")
     return category

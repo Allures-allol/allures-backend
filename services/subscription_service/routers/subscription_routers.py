@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from datetime import datetime, timedelta
+from services.subscription_service.crud import subscription_crud
 
 from common.db.session import get_db
 from common.models.user import User

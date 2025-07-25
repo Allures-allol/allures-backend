@@ -129,3 +129,31 @@ docker-compose.override.yml
 *.env.docker
 Dockerfile.*
 .docker/
+
+# Изображения и тяжёлые медиа
+fashion-dataset/images/
+fashion-dataset/selected_images/
+fashion-dataset/valid_images/
+fashion-dataset/raw/
+assets/images/
+mock_static/product-images/
+mock_static/product-images_/
+mock_static/uploads/
+
+# Весомые данные
+*.h5
+*.ipynb
+
+# Временные SQL/CSV
+fashion-dataset/final_merged_products_with_categories.csv
+fashion-dataset/valid_product.sql
+fashion-dataset/insert_final_products_with_description_and_subcategory.sql
+
+# Другие лишние скрипты/эксперименты
+fashion-dataset/scripts/
+
+#IDE
+*.pyc
+*.pyo
+*.pyd
+*.swp

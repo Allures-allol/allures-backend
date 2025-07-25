@@ -5,13 +5,17 @@ from datetime import datetime
 
 # === Категория товара ===
 class CategoryCreate(BaseModel):
-    name: str
+    category_name: str
     description: Optional[str] = None
+    subcategory: Optional[str] = None
+    product_type: Optional[str] = None
 
 class Category(BaseModel):
     category_id: int
-    name: str
+    category_name: str
     description: Optional[str] = None
+    subcategory: Optional[str] = None
+    product_type: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -27,14 +31,15 @@ class ProductBase(BaseModel):
     status: str
     current_inventory: int
     category_id: int
+    category_name: str
+    subcategory: Optional[str] = None
+    product_type: Optional[str] = None
     is_hit: Optional[bool] = False
     is_discount: Optional[bool] = False
     is_new: Optional[bool] = False
 
-
 class ProductCreate(ProductBase):
     pass
-
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -45,10 +50,12 @@ class ProductUpdate(BaseModel):
     status: Optional[str] = None
     current_inventory: Optional[int] = None
     category_id: Optional[int] = None
+    category_name: Optional[str] = None
+    subcategory: Optional[str] = None
+    product_type: Optional[str] = None
     is_hit: Optional[bool] = None
     is_discount: Optional[bool] = None
     is_new: Optional[bool] = None
-
 
 class ProductOut(BaseModel):
     id: int
@@ -64,7 +71,10 @@ class ProductOut(BaseModel):
     is_new: Optional[bool]
     created_at: datetime
     updated_at: datetime
+    category_id: int
     category_name: str
+    subcategory: Optional[str] = None
+    product_type: Optional[str] = None
 
     class Config:
         from_attributes = True

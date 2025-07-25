@@ -1,9 +1,6 @@
 # services/product_service/api/routes.py
-from fastapi import Query
-from sqlalchemy import asc, desc
-from sqlalchemy.orm import joinedload
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Optional
 
@@ -11,21 +8,15 @@ from common.db.session import get_db
 from common.models.products import Product as ProductModel
 from common.models.categories import Category as CategoryModel
 from common.models.inventory import Inventory
-from common.models.subscriptions import Subscription, UserSubscription
-from common.models.payment import Payment
-
-
 from services.product_service.api.schemas import (
-    ProductCreate, ProductUpdate,
-    ProductOut,
+    ProductCreate, ProductUpdate, ProductOut,
     InventoryCreate, CategoryCreate, Category as CategorySchema
 )
-
-from common.custom_exceptions import ProductNotFoundException, ProductInventoryUpdateException
 
 router = APIRouter()
 
 # Вспомогательная функция
+
 def create_inventory(inventory: InventoryCreate, db: Session):
     db_inventory = Inventory(**inventory.dict())
     db.add(db_inventory)
@@ -33,16 +24,10 @@ def create_inventory(inventory: InventoryCreate, db: Session):
     db.refresh(db_inventory)
     return db_inventory
 
-
 # Получение всех продуктов с категорией
 @router.get("/", response_model=List[ProductOut])
 def get_all_products(db: Session = Depends(get_db)):
-    products = (
-        db.query(ProductModel)
-        .options(joinedload(ProductModel.category))
-        .all()
-    )
-
+    products = db.query(ProductModel).options(joinedload(ProductModel.category)).all()
     return [
         ProductOut(
             id=p.id,
@@ -58,11 +43,12 @@ def get_all_products(db: Session = Depends(get_db)):
             is_new=p.is_new,
             created_at=p.created_at,
             updated_at=p.updated_at,
-            category_name=p.category.name if p.category else "Без категории"
-        )
-        for p in products
+            category_id=p.category_id,
+            category_name=p.category_name,
+            subcategory=p.subcategory,
+            product_type=p.product_type,
+        ) for p in products
     ]
-
 
 # Получение продукта по ID
 @router.get("/{product_id}", response_model=ProductOut)
@@ -85,9 +71,11 @@ def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
         is_new=product.is_new,
         created_at=product.created_at,
         updated_at=product.updated_at,
-        category_name=product.category.name if product.category else "Без категории"
+        category_id=product.category_id,
+        category_name=product.category_name,
+        subcategory=product.subcategory,
+        product_type=product.product_type,
     )
-
 
 # Обновление продукта
 @router.put("/{product_id}", response_model=ProductOut)
@@ -126,7 +114,10 @@ def update_product(product_id: int, update: ProductUpdate, db: Session = Depends
             is_new=db_product.is_new,
             created_at=db_product.created_at,
             updated_at=db_product.updated_at,
-            category_name=db_product.category.name if db_product.category else "Без категории"
+            category_id=db_product.category_id,
+            category_name=db_product.category_name,
+            subcategory=db_product.subcategory,
+            product_type=db_product.product_type,
         )
 
     except SQLAlchemyError as e:
@@ -134,7 +125,6 @@ def update_product(product_id: int, update: ProductUpdate, db: Session = Depends
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-
 
 # Создание новой категории
 @router.post("/categories/", response_model=CategorySchema)
@@ -148,7 +138,6 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     except SQLAlchemyError as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-
 
 # Получение категории по ID
 @router.get("/categories/{category_id}", response_model=CategorySchema)

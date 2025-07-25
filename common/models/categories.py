@@ -7,7 +7,10 @@ class Category(Base):
     __tablename__ = "categories"
 
     category_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(50), unique=True, nullable=False)
+    category_name = Column(String(50), unique=True, nullable=False)  # исправлено поле
     description = Column(String(255), nullable=True)
+
+    subcategory = Column(String(100), nullable=True)
+    product_type = Column(String(100), nullable=True)
 
     products = relationship("Product", back_populates="category", cascade="all, delete-orphan")

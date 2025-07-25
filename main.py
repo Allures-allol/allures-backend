@@ -16,10 +16,12 @@ from common.db.session import engine
 import common.models
 from services.review_service.models.review import Review
 from services.review_service.models.recommendation import Recommendation
-
+from sqlalchemy.orm import Session
+from common.db.session import SessionLocal
 
 # Импорт роутеров всех микросервисов
 from services.product_service.api.routes import router as product_router
+from services.product_service.api import image_classifier_router
 from services.review_service.api.routes import router as review_router
 from services.sales_service.api.routes import router as sales_router
 from services.payment_service.routers.payment import router as payment_router
@@ -29,6 +31,7 @@ from services.dashboard_service.routers.dashboard import router as dashboard_rou
 from services.admin_service.routers.admin_router import router as admin_router
 from services.subscription_service.routers.subscription_routers import router as subscription_router
 from services.review_service.models.review import Review
+from bulk_classify_and_save import load_and_classify_bulk
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -37,6 +40,7 @@ app = FastAPI(title="Allures Backend")
 
 # Подключение всех роутеров
 app.include_router(product_router, prefix="/products", tags=["Products"])
+app.include_router(image_classifier_router.router, prefix="/product", tags=["AI classifier"])
 app.include_router(review_router, prefix="/reviews", tags=["Reviews"])
 app.include_router(sales_router, prefix="/sales", tags=["Sales"])
 app.include_router(payment_router, prefix="/payment", tags=["Payment"])
@@ -88,5 +92,12 @@ def startup_event():
 @app.get("/")
 def root():
     return {"message": "Allures Backend"}
+
+def main():
+    db: Session = SessionLocal()
+    load_and_classify_bulk(db)
+
+if __name__ == "__main__":
+    main()
 
 # uvicorn main:app --reload --port 8008
