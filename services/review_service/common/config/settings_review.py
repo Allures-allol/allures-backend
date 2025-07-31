@@ -6,10 +6,7 @@ import os
 
 
 class ReviewSettings(BaseSettings):
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
-
+    
     # API ключи
     NOWPAYMENTS_API_KEY: str = Field(..., alias="NOWPAYMENTS_API_KEY")
     NGROK_WEBHOOK_URL: str = Field(..., alias="NGROK_WEBHOOK_URL")
