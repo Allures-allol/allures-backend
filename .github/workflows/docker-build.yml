@@ -36,7 +36,7 @@ jobs:
           denstep123/allures-alloll-monolit:latest
 
       - name: Upload Trivy report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: trivy-report
           path: trivy-report.txt
