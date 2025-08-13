@@ -1,4 +1,5 @@
-#services/auth_service/main.py
+# services/auth_service/main.py
+
 import sys
 import os
 import common.utils.env_loader
@@ -11,47 +12,66 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from dotenv import load_dotenv
 
+from services.auth_service.routers import auth as auth_router
+from services.auth_service.routers import profile as profile_router
 from common.db.session import get_db
-from services.auth_service.routers import auth
-from common.config.settings import settings
 
 load_dotenv()
 
-app = FastAPI(title="Authorization Service")
+# Проверка JWT_SECRET (можно закомментировать позже)
+secret = os.getenv("JWT_SECRET")
+if secret:
+    print(f"🔐 JWT_SECRET загружен: {secret[:10]}... (длина = {len(secret)})")
+else:
+    print("❌ JWT_SECRET НЕ НАЙДЕН! Проверь .env файл")
 
-# CORS — для фронта и локальной разработки
+app = FastAPI(
+    title="Authorization Service",
+    version="1.0.0",
+    swagger_ui_parameters={"persistAuthorization": True},
+)
+
+# --- CORS ---
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://api.alluresallol.com",
+    "https://alluresallol.com",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://api.alluresallol.com",
-        "https://alluresallol.com",
-    ],
-    allow_credentials=True,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 🔗 Подключение роутеров
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
+# --- Роутеры ---
+app.include_router(auth_router.router, prefix="/auth", tags=["auth"])
+app.include_router(profile_router.router, prefix="/profile", tags=["profile"])
 
-# Проверка подключения к PostgreSQL
+# --- Health check ---
+@app.get("/health", tags=["meta"])
+def health():
+    return {"status": "ok"}
+
+# --- Проверка подключения к PostgreSQL ---
 @app.on_event("startup")
 def startup_event():
     db_gen = get_db()
     db = next(db_gen)
     try:
         db.execute(text("SELECT 1"))
-        print(" PostgreSQL подключение успешно (Authorization Service)")
+        print("✅ PostgreSQL подключение успешно (Authorization Service)")
     except Exception as e:
-        print(f" Ошибка подключения к PostgreSQL: {e}")
+        print(f"❌ Ошибка подключения к PostgreSQL: {e}")
     finally:
         db.close()
 
-# Корневой эндпоинт
+# --- Корень ---
 @app.get("/")
 def read_root():
     return {"message": "Authorization Service is running"}
+
 
 # uvicorn services.auth_service.main:app --reload --port 8003

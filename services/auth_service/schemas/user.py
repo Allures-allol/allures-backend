@@ -22,7 +22,8 @@ class UserOut(BaseModel):
     is_blocked: Optional[bool] = False
 
     class Config:
-        from_attributes = True
+        class Config:
+            orm_mode = True
 
 class LoginRequest(BaseModel):
     login: str = Field(..., example="user@example.com")
@@ -46,6 +47,17 @@ class UserProfileUpdate(BaseModel):
     bonus_balance: Optional[int]
     delivery_address: Optional[str]
 
+class UserProfileOut(BaseModel):
+    id: int
+    login: str
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    role: str
+    registered_at: Optional[datetime] = None
+    is_blocked: Optional[bool] = None
+
+    class Config:
+        orm_mode = True
 class ForgotPassword(BaseModel):
     email: EmailStr
 

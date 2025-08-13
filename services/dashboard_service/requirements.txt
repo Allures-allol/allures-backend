@@ -133,7 +133,6 @@ pydantic-settings==2.9.1
 pydantic==2.11.4
 pyee==13.0.0
 pymongo==4.13.0
-pymssql==2.3.4
 pyodbc==5.2.0
 pyparsing==3.2.3
 pystock==0.1.6
@@ -164,11 +163,11 @@ soupsieve==2.7
 sqlalchemy==2.0.30
 stack-data==0.6.3
 starlette==0.46.0
-#strawberry-graphql==0.275.0
-#tensorboard-data-server==0.7.2
-#tensorboard==2.19.0
-#tensorflow-io-gcs-filesystem==0.31.0
-#tensorflow==2.19.0
+strawberry-graphql==0.275.0
+tensorboard-data-server==0.7.2
+tensorboard==2.19.0
+tensorflow-io-gcs-filesystem==0.31.0
+tensorflow==2.19.0
 termcolor==3.1.0
 terminado==0.18.1
 threadpoolctl==3.6.0
