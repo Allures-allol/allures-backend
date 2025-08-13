@@ -1,4 +1,4 @@
-name: Build and Push Monolith Image
+name: Build, Scan and Push Monolith Image
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build-and-push:
+  build-scan-push:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +19,21 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push Docker image
+      - name: Install Trivy
         run: |
-          docker build -t denstep123/allures-alloll-monolit:latest .
-          docker push denstep123/allures-alloll-monolit:latest
+          sudo apt-get update
+          sudo apt-get install -y trivy
+
+      - name: Build Docker image
+        run: docker build -t denstep123/allures-alloll-monolit:latest .
+
+      - name: Scan Docker image with Trivy
+        run: |
+          trivy image \
+            --exit-code 1 \
+            --severity HIGH,CRITICAL \
+            denstep123/allures-alloll-monolit:latest
+
+      - name: Push Docker image
+        if: success() # пушим только если Trivy не нашёл критичных
+        run: docker push denstep123/allures-alloll-monolit:latest
