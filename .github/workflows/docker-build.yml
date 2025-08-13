@@ -35,6 +35,13 @@ jobs:
           -o trivy-report.txt \
           denstep123/allures-alloll-monolit:latest
 
+      - name: Upload Trivy report
+        uses: actions/upload-artifact@v3
+        with:
+          name: trivy-report
+          path: trivy-report.txt
+
+
       - name: Push Docker image
         if: success() # пушим только если Trivy не нашёл критичных
         run: docker push denstep123/allures-alloll-monolit:latest
