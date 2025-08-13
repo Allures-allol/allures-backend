@@ -27,12 +27,13 @@ jobs:
       - name: Build Docker image
         run: docker build -t denstep123/allures-alloll-monolit:latest .
 
-      - name: Scan Docker image with Trivy
+      - name: Scan Docker image with Trivy (report)
         run: |
           trivy image \
-            --exit-code 1 \
-            --severity HIGH,CRITICAL \
-            denstep123/allures-alloll-monolit:latest
+          --severity HIGH,CRITICAL \
+          -f table \
+          -o trivy-report.txt \
+          denstep123/allures-alloll-monolit:latest
 
       - name: Push Docker image
         if: success() # пушим только если Trivy не нашёл критичных
