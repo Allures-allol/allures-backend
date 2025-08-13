@@ -21,8 +21,7 @@ jobs:
 
       - name: Install Trivy
         run: |
-          sudo apt-get update
-          sudo apt-get install -y trivy
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh
 
       - name: Build Docker image
         run: docker build -t denstep123/allures-alloll-monolit:latest .
