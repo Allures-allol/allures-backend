@@ -13,5 +13,5 @@ class Upload(Base):
     uploaded_at = Column(DateTime, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    user = relationship("User", back_populates="uploads")
+    # user = relationship("User", back_populates="uploads")
 

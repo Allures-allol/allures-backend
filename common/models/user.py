@@ -1,8 +1,6 @@
-# services/common/models/user.py
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
-from sqlalchemy.orm import relationship
+# common/models/user.py
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, text
 from datetime import datetime
-
 from common.db.base import Base
 
 class User(Base):
@@ -10,7 +8,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     login = Column(String(255), unique=True, nullable=False)
-    password = Column(String, nullable=False)
+    password = Column(Text, nullable=False)  # TEXT в БД
     full_name = Column(String(100))
     email = Column(String(255))
     phone = Column(String(30))
@@ -18,16 +16,13 @@ class User(Base):
     language = Column(String(20), default="uk")
     bonus_balance = Column(Integer, default=0)
     delivery_address = Column(String(255))
-    registered_at = Column(DateTime, default=datetime.utcnow)
+    # серверный дефолт как в БД
+    registered_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
     role = Column(String(50), default="user")
     is_blocked = Column(Boolean, default=False)
 
-    sales = relationship("Sales", back_populates="user", cascade="all, delete")
-    uploads = relationship("Upload", back_populates="user", cascade="all, delete")
-    reviews = relationship("Review", back_populates="user", cascade="all, delete-orphan")
-    subscriptions = relationship("UserSubscription", back_populates="user", cascade="all, delete")
+    # необязательно, только ДЛЯ Alembic,чтобы «видел» частичный индекс
+    # __table_args__ = (
+    #     Index("uq_users_email", "email", unique=True, postgresql_where=text("email IS NOT NULL")),
+    # )
 
-
-from common.models.sales import Sales
-from common.models.uploads import Upload
-from services.review_service.models.review import Review

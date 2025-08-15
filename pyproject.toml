@@ -1,0 +1,20 @@
+# pyproject.toml (в корне)
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "allures-common"
+version = "0.1.0"
+description = "Shared config/db/enums/utils for Allures services"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "pydantic>=2",
+  "pydantic-settings>=2",
+  "python-dotenv>=1",
+  "SQLAlchemy>=2",
+]
+
+[tool.setuptools]
+packages = { find = { include = ["common*"] } }

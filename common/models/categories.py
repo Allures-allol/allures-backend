@@ -16,4 +16,4 @@ class Category(Base):
     __table_args__ = (
         UniqueConstraint('category_name', 'subcategory', 'product_type', name='uq_category_full'),
     )
-    products = relationship("Product", back_populates="category", cascade="all, delete-orphan")
+    # products = relationship("Product", back_populates="category", cascade="all, delete-orphan")

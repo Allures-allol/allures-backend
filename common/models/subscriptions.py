@@ -23,7 +23,7 @@ class Subscription(Base):
         UniqueConstraint('code', 'language', name='uq_code_language'),
     )
 
-    user_subscriptions = relationship("UserSubscription", back_populates="subscription", cascade="all, delete-orphan")
+    # user_subscriptions = relationship("UserSubscription", back_populates="subscription", cascade="all, delete-orphan")
 
 
 class UserSubscription(Base):
@@ -38,6 +38,6 @@ class UserSubscription(Base):
     auto_renew = Column(Boolean, default=False)
     payment_id = Column(Integer, ForeignKey("payments.id"), nullable=True)
 
-    subscription = relationship("Subscription", back_populates="user_subscriptions")
-    payment = relationship("Payment", backref="user_subscription")
-    user = relationship("User", back_populates="subscriptions")
+    # subscription = relationship("Subscription", back_populates="user_subscriptions")
+    # payment = relationship("Payment", backref="user_subscription")
+    # user = relationship("User", back_populates="subscriptions")
