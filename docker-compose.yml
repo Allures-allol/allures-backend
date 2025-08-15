@@ -1,0 +1,57 @@
+
+
+services:
+  postgres-db:
+    image: postgres:14
+    container_name: postgres-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Рекомендуется фиксировать таймзону БД
+      TZ: "Europe/Kyiv"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - allures-network
+
+  allures-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: allures-backend
+    restart: always
+    ports:
+      - "8008:8000"          # внешне : внутри контейнера
+    volumes:
+      - .:/app               # hot-reload разработки
+    working_dir: /app
+    env_file:
+      - .env
+    environment:
+      # ВАЖНО: внутри контейнера подключаемся к postgres-db, НЕ к localhost
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-db:5432/${POSTGRES_DB}
+      PYTHONPATH: /app:/app/common
+      TZ: "Europe/Kyiv"
+    command: >
+      uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - allures-network
+
+volumes:
+  postgres_data:
+
+networks:
+  allures-network:
+    driver: bridge

@@ -1,0 +1,20 @@
+
+services:
+  auth_service:
+    build:
+      context: ../..
+      dockerfile: services/auth_service/Dockerfile
+    container_name: auth_service
+    restart: always
+    ports:
+      - "8003:8000"
+    env_file:
+      - ../../.env
+    environment:
+      PYTHONPATH: /app
+      TZ: "Europe/Kyiv"
+    networks: [auth-net]
+
+networks:
+  auth-net:
+    driver: bridge

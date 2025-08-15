@@ -30,7 +30,7 @@ class Product(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    category = relationship("Category", back_populates="products")
-
-    sales = relationship("Sales", back_populates="product", cascade="all, delete-orphan")
-    reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")
+    # category = relationship("Category", back_populates="products")
+    #
+    # sales = relationship("Sales", back_populates="product", cascade="all, delete-orphan")
+    # reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")
