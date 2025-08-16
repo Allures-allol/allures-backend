@@ -3,7 +3,7 @@ import sys
 import os
 # Добавление корневого пути (для импорта модулей из /services и /common)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from tensorflow.keras.models import load_model
+# from tensorflow.keras.models import load_model
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,6 +33,8 @@ from services.admin_service.routers.admin_router import router as admin_router
 from services.subscription_service.routers.subscription_routers import router as subscription_router
 from services.review_service.models.review import Review
 from bulk_classify_and_save import load_and_classify_bulk
+from services.auth_service.routers import profile as profile_router
+
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -50,6 +52,7 @@ app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 # app.include_router(dashboard_router, prefix="/dashboard", tags=["Dashboard"])
 app.include_router(admin_router, prefix="/admin", tags=["Admin"])
 app.include_router(subscription_router, prefix="/subscription", tags=["Subscription"])
+app.include_router(profile_router.router, prefix="/profile", tags=["profile"])
 
 # Разрешения CORS
 app.add_middleware(
