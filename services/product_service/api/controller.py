@@ -2,28 +2,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-
 from common.db.session import get_db
 from common.models.products import Product as ProductModel
 from common.models.categories import Category as CategoryModel
 from common.models.inventory import Inventory
-
 from services.product_service.api.schemas import (
-    ProductCreate,
-    ProductUpdate,
-    ProductOut,
-    CategoryCreate,
-    Category as CategorySchema,
-    InventoryCreate
+    ProductCreate, ProductUpdate, ProductOut, CategoryCreate,
+    Category as CategorySchema, InventoryCreate
 )
-
-from common.custom_exceptions import (
-    ProductNotFoundException,
-    ProductInventoryUpdateException
-)
+from common.custom_exceptions import (ProductNotFoundException, ProductInventoryUpdateException)
 
 router = APIRouter()
-
 
 def create_inventory(inventory: InventoryCreate, db: Session):
     db_inventory = Inventory(**inventory.dict())
@@ -31,7 +20,6 @@ def create_inventory(inventory: InventoryCreate, db: Session):
     db.commit()
     db.refresh(db_inventory)
     return db_inventory
-
 
 @router.post("/", response_model=ProductOut)
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):

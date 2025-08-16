@@ -1,7 +1,9 @@
 # services/product_service/api/schemas.py
 from pydantic import BaseModel
-from typing import Optional
+from typing import  List, Optional
 from datetime import datetime
+
+
 
 # === Категория товара ===
 class CategoryCreate(BaseModel):
@@ -19,7 +21,6 @@ class Category(BaseModel):
 
     class Config:
         from_attributes = True
-
 
 # === Продукт ===
 class ProductBase(BaseModel):
@@ -79,8 +80,20 @@ class ProductOut(BaseModel):
     class Config:
         from_attributes = True
 
-
 class InventoryCreate(BaseModel):
     product_id: int
     category_id: int
     inventory_quantity: int
+
+class PageMeta(BaseModel):
+    page: int
+    per_page: int
+    total: int
+
+class ProductsPage(BaseModel):
+    items: List[ProductOut]
+    meta: PageMeta
+
+class CategoryList(BaseModel):
+    items: List[Category]
+    meta: PageMeta

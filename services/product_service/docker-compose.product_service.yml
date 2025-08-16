@@ -1,0 +1,21 @@
+
+
+services:
+  product_service:
+    build:
+      context: ../..              # корень проекта
+      dockerfile: services/product_service/Dockerfile
+    container_name: product_service
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../../.env
+    environment:
+      PYTHONPATH: /app
+    networks:
+      - product-net
+
+networks:
+  product-net:
+    driver: bridge

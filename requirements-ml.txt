@@ -1,0 +1,5 @@
+# keras==3.10.0
+# tensorboard-data-server==0.7.2
+# tensorboard==2.19.0 или tensorboard==2.20.0 совместимы с Python 3.10.
+# tensorflow-io-gcs-filesystem==0.31.0
+# tensorflow==2.19.0 или tensorflow==2.20.0

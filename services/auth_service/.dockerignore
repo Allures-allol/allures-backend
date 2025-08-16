@@ -1,69 +1,24 @@
-# ================== Python cache ==================
-.venv/
-__pycache__/
-*.pyc
-
-# ================== Docker volumes & runtime ==================
-*.pid
-*.sock
-
-# ================== Env файлы ==================
-.env.*
-.env
-
-# ================== Datasets / временные данные ==================
-dataset/
-dataset/bags/
-dataset/bags/Bags/
-dataset/electronics/
-dataset/fashion/
-dataset/fashion/Accessories/
-dataset/fashion/Apparel/
-dataset/personal_care/
-
-fashion-dataset/
-fashion-dataset/images/
-fashion-dataset/selected_images/
-fashion-dataset/valid_images/
-
-# ================== Статические мок-изображения ==================
-mock_static/
-mock_static/product-images/
-mock_static/uploads/
-assets/images/
-
-# ================== IDE и системные ==================
-.vscode/
-.idea/
-*.log
-*.sqlite3
-*.db
-*.ipynb_checkpoints/
-outputs/
-logs/
-runs/
-notebooks/
-
-
-
-# ================== ML-модели ==================
-
-*.pt
-*.pth
-*.ckpt
-*.onnx
-model_checkpoints/
-checkpoints/
-
-# ================== Git ==================
+# Исключаем лишнее из контекста Docker
 .git
 .gitignore
-.dockerignore
-
-# ================== Pytest и build ==================
-htmlcov/
-.coverage
-.cache/
-.tox/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
 dist/
 build/
+tests/
+logs/
+*.log
+
+# Исключаем тяжелые данные
+dataset/
+mock_static/
+
+# Исключаем IDE/системное
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+

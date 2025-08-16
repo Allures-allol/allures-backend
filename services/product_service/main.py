@@ -13,14 +13,13 @@ from sqlalchemy import text
 from common.models.products import Product
 from common.models.categories import Category
 
-
 from common.db.session import get_db
 from common.config.settings import settings
 
 from services.product_service.api.routes import router as product_router
 # from services.product_service.api import image_classifier_router
 
-from services.review_service.api.routes import router as review_router
+# from services.review_service.api.routes import router as review_router
 # from graphql_app.schema import schema as review_schema
 # from strawberry.fastapi import GraphQLRouter
 
@@ -43,12 +42,12 @@ app.add_middleware(
 )
 
 # Проверка: вывод URL подключения
-print("▶ MAINDB_URL из settings:", settings.MAINDB_URL)
+print(" MAINDB_URL из settings:", settings.MAINDB_URL)
 
 # Подключаем REST маршруты
 app.include_router(product_router, prefix="/products", tags=["Products"])
 
-app.include_router(review_router, prefix="/reviews", tags=["Reviews"])
+# app.include_router(review_router, prefix="/reviews", tags=["Reviews"])
 
 # app.include_router(image_classifier_router.router, prefix="/product", tags=["AI classifier"])
 
@@ -62,9 +61,9 @@ def startup_event():
     db = next(db_gen)
     try:
         db.execute(text("SELECT 1"))
-        print("✅ PostgreSQL подключение успешно (Product Service)")
+        print(" PostgreSQL подключение успешно (Product Service)")
     except Exception as e:
-        print(f"❌ Ошибка подключения к PostgreSQL: {e}")
+        print(f" Ошибка подключения к PostgreSQL: {e}")
     finally:
         db.close()
 
@@ -76,7 +75,7 @@ def startup_event():
 #     try:
 #         check_model_exists()
 #     except Exception as e:
-#         print("❌ Ошибка при старте сервиса:", str(e))
+#         print(" Ошибка при старте сервиса:", str(e))
 
 @app.get("/")
 def root():

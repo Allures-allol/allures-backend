@@ -1,59 +1,40 @@
 # services/product_service/api/routes.py
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import and_, or_
 from typing import List, Optional
 
 from common.db.session import get_db
 from common.models.products import Product as ProductModel
 from common.models.categories import Category as CategoryModel
 from common.models.inventory import Inventory
+
 from services.product_service.api.schemas import (
-    ProductCreate, ProductUpdate, ProductOut,
+    ProductCreate, ProductUpdate, ProductOut, ProductsPage, PageMeta,
     InventoryCreate, CategoryCreate, Category as CategorySchema
 )
 
-router = APIRouter()
+# импорт HTTP‑клиента для отзывов
+from services.product_service.api.review_client import (
+    reviews_client, ReviewOut, RecommendationOut
+)
 
-# Вспомогательная функция
+router = APIRouter()
 
 def create_inventory(inventory: InventoryCreate, db: Session):
     db_inventory = Inventory(**inventory.dict())
     db.add(db_inventory)
     db.commit()
+
+
     db.refresh(db_inventory)
     return db_inventory
 
-# Получение всех продуктов с категорией
-@router.get("/", response_model=List[ProductOut])
-def get_all_products(db: Session = Depends(get_db)):
-    products = db.query(ProductModel).options(joinedload(ProductModel.category)).all()
-    return [
-        ProductOut(
-            id=p.id,
-            name=p.name,
-            description=p.description,
-            price=p.price,
-            old_price=p.old_price,
-            image=p.image,
-            status=p.status,
-            current_inventory=p.current_inventory,
-            is_hit=p.is_hit,
-            is_discount=p.is_discount,
-            is_new=p.is_new,
-            created_at=p.created_at,
-            updated_at=p.updated_at,
-            category_id=p.category_id,
-            category_name=p.category_name,
-            subcategory=p.subcategory,
-            product_type=p.product_type,
-        ) for p in products
-    ]
-
-# Получение продукта по ID
+# === Продукты ===
 @router.get("/{product_id}", response_model=ProductOut)
 def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
-    product = db.query(ProductModel).options(joinedload(ProductModel.category)).filter(ProductModel.id == product_id).first()
+    product = db.query(ProductModel).filter(ProductModel.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
 
@@ -77,7 +58,6 @@ def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
         product_type=product.product_type,
     )
 
-# Обновление продукта
 @router.put("/{product_id}", response_model=ProductOut)
 def update_product(product_id: int, update: ProductUpdate, db: Session = Depends(get_db)):
     try:
@@ -119,14 +99,14 @@ def update_product(product_id: int, update: ProductUpdate, db: Session = Depends
             subcategory=db_product.subcategory,
             product_type=db_product.product_type,
         )
-
     except SQLAlchemyError as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
-# Создание новой категории
+# === Категории ===
+
 @router.post("/categories/", response_model=CategorySchema)
 def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     try:
@@ -139,10 +119,129 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
-# Получение категории по ID
 @router.get("/categories/{category_id}", response_model=CategorySchema)
 def get_category_by_id(category_id: int, db: Session = Depends(get_db)):
     category = db.query(CategoryModel).filter(CategoryModel.category_id == category_id).first()
     if category is None:
         raise HTTPException(status_code=404, detail=f"Category with ID {category_id} not found")
     return category
+
+# === Прокси к Review Service (HTTP), без ORM‑связей ===
+
+@router.get("/{product_id}/reviews", response_model=List[ReviewOut])
+def get_product_reviews(product_id: int):
+    try:
+        return reviews_client.get_reviews_by_product(product_id)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Review service error: {e}")
+
+@router.get("/users/{user_id}/recommendations", response_model=List[RecommendationOut])
+def get_user_recommendations(user_id: int):
+    try:
+        return reviews_client.get_user_recommendations(user_id)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Review service error: {e}")
+
+# ---------- Хелпер ----------
+def apply_product_filters(q, *,
+    search: Optional[str],
+    category_id: Optional[int],
+    is_new: Optional[bool],
+    is_discount: Optional[bool],
+    is_hit: Optional[bool],
+    price_min: Optional[float],
+    price_max: Optional[float],
+    status: Optional[str],
+):
+    if search:
+        like = f"%{search.strip()}%"
+        q = q.filter(or_(ProductModel.name.ilike(like),
+                         ProductModel.description.ilike(like)))
+    if category_id is not None:
+        q = q.filter(ProductModel.category_id == category_id)
+    if is_new is not None:
+        q = q.filter(ProductModel.is_new == is_new)
+    if is_discount is not None:
+        q = q.filter(ProductModel.is_discount == is_discount)
+    if is_hit is not None:
+        q = q.filter(ProductModel.is_hit == is_hit)
+    if price_min is not None:
+        q = q.filter(ProductModel.price >= price_min)
+    if price_max is not None:
+        q = q.filter(ProductModel.price <= price_max)
+    if status:
+        q = q.filter(ProductModel.status == status)
+    return q
+
+# ---------- ПАГИНАЦИЯ/СПИСОК ----------
+@router.get("/", response_model=ProductsPage)
+def list_products(
+    db: Session = Depends(get_db),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    search: Optional[str] = None,
+    category_id: Optional[int] = None,
+    is_new: Optional[bool] = None,
+    is_discount: Optional[bool] = None,
+    is_hit: Optional[bool] = None,
+    price_min: Optional[float] = None,
+    price_max: Optional[float] = None,
+    status: Optional[str] = None,
+    sort: Optional[str] = Query(None, description="name|price|created_at|updated_at (добавь -desc для убывания)"),
+):
+    q = db.query(ProductModel)
+    q = apply_product_filters(
+        q,
+        search=search,
+        category_id=category_id,
+        is_new=is_new,
+        is_discount=is_discount,
+        is_hit=is_hit,
+        price_min=price_min,
+        price_max=price_max,
+        status=status,
+    )
+
+    # сортировка
+    sort_map = {
+        "name": ProductModel.name,
+        "price": ProductModel.price,
+        "created_at": ProductModel.created_at,
+        "updated_at": ProductModel.updated_at,
+    }
+    if sort:
+        desc = sort.endswith("-desc")
+        key = sort[:-5] if desc else sort
+        col = sort_map.get(key)
+        if col is not None:
+            q = q.order_by(col.desc() if desc else col.asc())
+    else:
+        q = q.order_by(ProductModel.id.asc())
+
+    total = q.count()
+    items = q.offset((page - 1) * per_page).limit(per_page).all()
+
+    return ProductsPage(
+        items=[
+            ProductOut(
+                id=p.id,
+                name=p.name,
+                description=p.description,
+                price=p.price,
+                old_price=p.old_price,
+                image=p.image,
+                status=p.status,
+                current_inventory=p.current_inventory,
+                is_hit=p.is_hit,
+                is_discount=p.is_discount,
+                is_new=p.is_new,
+                created_at=p.created_at,
+                updated_at=p.updated_at,
+                category_id=p.category_id,
+                category_name=p.category_name,
+                subcategory=p.subcategory,
+                product_type=p.product_type,
+            ) for p in items
+        ],
+        meta=PageMeta(page=page, per_page=per_page, total=total),
+    )
