@@ -1,14 +1,14 @@
 # Используем официальный образ Python 3.10 (slim)
 FROM python:3.10-slim
 
+# Рабочая директория внутри контейнера
 WORKDIR /app
 
+# Копируем requirements и ставим зависимости
 COPY services/review_service/requirements.txt .
-COPY services/review_service/main.py .
-
-
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
+# Устанавливаем системные зависимости
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         curl \
@@ -22,9 +22,18 @@ RUN apt-get update && \
         ca-certificates && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY . .
+# Копируем весь каталог конкретного сервиса
+COPY services/review_service ./services/review_service
 
+# Если есть общие модули
+COPY common ./common
+
+# Настраиваем PYTHONPATH для корректных импортов
 ENV PYTHONPATH=/app:/app/common
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Экспорт порта
+EXPOSE 8008
+
+# Команда запуска
+CMD ["uvicorn", "services.review_service.main:app", "--host", "0.0.0.0", "--port", "8008"]
 
