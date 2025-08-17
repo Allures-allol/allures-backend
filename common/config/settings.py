@@ -1,37 +1,40 @@
 # common/config/settings.py
+from __future__ import annotations
+import os
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-import os
 
 class Settings(BaseSettings):
+    """
+    Prod: одна общая БД для всех сервисов.
+    Используем MAINDB_URL (Supabase или другой managed PG).
+    Формат URL для SQLAlchemy с psycopg2: postgresql+psycopg2://... ?sslmode=require
+    """
+    MAINDB_URL: str = Field(default="", alias="MAINDB_URL")
+    DB_ECHO: bool = Field(default=False, alias="DB_ECHO")
 
-    # API ключи
-    NOWPAYMENTS_API_KEY: str = Field(..., alias="NOWPAYMENTS_API_KEY")
-    NGROK_WEBHOOK_URL: str = Field(..., alias="NGROK_WEBHOOK_URL")
+    AUTH_SERVICE_URL: str = Field(default="http://auth_service:8000", alias="AUTH_SERVICE_URL")
+    PRODUCT_SERVICE_URL: str = Field(default="http://product_service:8000", alias="PRODUCT_SERVICE_URL")
+    REVIEW_SERVICE_URL: str = Field(default="http://review_service:8000", alias="REVIEW_SERVICE_URL")
+    PAYMENTS_SERVICE_URL: str = Field(default="http://payment_service:8000", alias="PAYMENTS_SERVICE_URL")
+    PROFILE_SERVICE_URL: str = Field(default="http://profile_service:8000", alias="PROFILE_SERVICE_URL")
+    DISCOUNT_SERVICE_URL: str = Field(default="http://discount_service:8000", alias="DISCOUNT_SERVICE_URL")
+    ADMIN_SERVICE_URL: str = Field(default="http://admin_service:8000", alias="ADMIN_SERVICE_URL")
+    SUBSCRIPTION_SERVICE_URL: str = Field(default="http://subscription_service:8000", alias="SUBSCRIPTION_SERVICE_URL")
+    # DASHBOARD_SERVICE_URL: str = Field(default="http://dashboard_service:8000", alias="DASHBOARD_SERVICE_URL")
 
-    # База данных
-    MAINDB_URL: str = Field(..., alias="MAINDB_URL")
-
-    # Ссылки на микросервисы
-    PRODUCT_SERVICE_URL: str = Field(..., alias="PRODUCT_SERVICE_URL")
-    SALES_SERVICE_URL: str = Field(..., alias="SALES_SERVICE_URL")
-    REVIEW_SERVICE_URL: str = Field(..., alias="REVIEW_SERVICE_URL")
-    AUTH_SERVICE_URL: str = Field(..., alias="AUTH_SERVICE_URL")
-    PROFILE_SERVICE_URL: str = Field(..., alias="PROFILE_SERVICE_URL")
-    PAYMENTS_SERVICE_URL: str = Field(..., alias="PAYMENTS_SERVICE_URL")
-    DISCOUNT_SERVICE_URL: str = Field(..., alias="DISCOUNT_SERVICE_URL")
-
-    # TODO: включить DASHBOARD_SERVICE_URL после запуска dashboard_service
-    # DASHBOARD_SERVICE_URL: str = Field(..., alias="DASHBOARD_SERVICE_URL")
-    ADMIN_SERVICE_URL: str = Field(..., alias="ADMIN_SERVICE_URL")
-    SUBSCRIPTION_SERVICE_URL: str = Field(..., alias="SUBSCRIPTION_SERVICE_URL")
-
+    NOWPAYMENTS_API_KEY: str | None = Field(default=None, alias="NOWPAYMENTS_API_KEY")
+    NGROK_WEBHOOK_URL: str | None = Field(default=None, alias="NGROK_WEBHOOK_URL")
 
     model_config = SettingsConfigDict(
         env_file=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.env")),
         env_file_encoding="utf-8",
         extra="allow",
-        case_sensitive = True
+        case_sensitive=True,
     )
+
+    @property
+    def effective_db_url(self) -> str:
+        return self.MAINDB_URL
 
 settings = Settings()

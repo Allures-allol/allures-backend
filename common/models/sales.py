@@ -16,7 +16,7 @@ class Sales(Base):
     total_price = Column(Float, nullable=False)
     revenue = Column(Float, nullable=True)
 
-    product = relationship("Product", back_populates="sales")
-    user = relationship("User", back_populates="sales")
-    category = relationship("Category", backref="sales")
+    # product = relationship("Product", back_populates="sales")
+    # user = relationship("User", back_populates="sales")
+    # category = relationship("Category", backref="sales")
 

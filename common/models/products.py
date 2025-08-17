@@ -22,7 +22,7 @@ class Product(Base):
     is_new = Column(Boolean, default=False)
 
     category_id = Column(Integer, ForeignKey("categories.category_id"), nullable=False)
-    category_name = Column(String(50), nullable=False)  # если хочешь дублировать имя
+    category_name = Column(String(50), nullable=False)
 
     subcategory = Column(String(100), nullable=True)
     product_type = Column(String(100), nullable=True)
@@ -30,7 +30,5 @@ class Product(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    # Разрешено: отношение ВНУТРИ сервиса (Category — часть предметной области продуктов)
     category = relationship("Category", back_populates="products")
-
-    sales = relationship("Sales", back_populates="product", cascade="all, delete-orphan")
-    reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")

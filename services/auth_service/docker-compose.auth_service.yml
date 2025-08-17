@@ -1,0 +1,22 @@
+
+
+services:
+  auth_service:
+    build:
+      context: .
+      dockerfile: services/auth_service/Dockerfile
+    container_name: auth_service
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    environment:
+      PYTHONPATH: /app
+      TZ: "Europe/Kyiv"
+    command: uvicorn services.auth_service.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8003:8000"
+    networks: [auth-net]
+
+networks:
+  auth-net:
+    driver: bridge
