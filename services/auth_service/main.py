@@ -27,11 +27,11 @@ else:
 
 # --- Инициализация FastAPI ---
 app = FastAPI(
-    title="Authorization Service",
-    version="1.0.0",
-    docs_url="/docs",        # Swagger
-    redoc_url="/redoc",      # ReDoc
-    openapi_url="/openapi.json"
+   title="Auth Service",
+   docs_url="/auth/docs",
+   redoc_url="/auth/redoc",
+   openapi_url="/auth/openapi.json",
+
 )
 
 # --- CORS ---
@@ -51,7 +51,7 @@ app.add_middleware(
 
 # --- Роутеры ---
 app.include_router(auth_router.router, prefix="/auth", tags=["auth"])
-app.include_router(profile_router.router, prefix="/profile", tags=["profile"])
+app.include_router(profile_router.router, prefix="/auth", tags=["profile"])
 
 # --- Health check ---
 @app.get("/health", tags=["meta"])
