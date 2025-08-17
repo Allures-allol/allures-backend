@@ -1,22 +1,19 @@
 #main.py product_service
-import sys
 import os
-# import common.utils.env_loader
+import sys
+from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 # Добавление корневого пути (чтобы импортировать общие модули)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))  # доступ к /services и /common
 
-from fastapi import FastAPI, Depends
 from dotenv import load_dotenv
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
-from sqlalchemy.orm import Session
 from common.db.session import get_db
 from common.config.settings import settings
-
 from common.models.products import Product as ProductModel
 from common.models.categories import Category as CategoryModel
-
 from services.product_service.api.routes import router as product_router
 
 # from services.product_service.api import image_classifier_router
@@ -30,11 +27,11 @@ load_dotenv()
 
 app = FastAPI(
     title="Product Service",
-    docs_url="/products/docs",
-    redoc_url="/products/redoc",
-    openapi_url="/products/openapi.json",
+    root_path="/product",       # прод-префикс: https://api.../product/*
+    docs_url="/docs",           # https://api.../product/docs
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
 )
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
