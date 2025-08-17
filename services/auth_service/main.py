@@ -12,8 +12,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from dotenv import load_dotenv
 
-from services.auth_service.routers import auth as auth_router
-from services.auth_service.routers import profile as profile_router
+# Импортируем только объекты router
+from services.auth_service.routers.auth import router as auth_router
+from services.auth_service.routers.profile import router as profile_router
 from common.db.session import get_db
 
 load_dotenv()
@@ -34,11 +35,6 @@ app = FastAPI(
     openapi_url="/auth/openapi.json"
 )
 
-# Роутер с правильным префиксом
-app.include_router(auth_router, prefix="/auth", tags=["auth"])
-app.include_router(profile_router, prefix="/profile", tags=["profile"])
-
-
 # --- CORS ---
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
@@ -55,8 +51,8 @@ app.add_middleware(
 )
 
 # --- Роутеры ---
-app.include_router(auth_router.router, prefix="/auth", tags=["auth"])
-app.include_router(profile_router.router, prefix="/profile", tags=["profile"])
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(profile_router, prefix="/profile", tags=["profile"])
 
 # --- Health check ---
 @app.get("/health", tags=["meta"])
@@ -81,5 +77,5 @@ def startup_event():
 def read_root():
     return {"message": "Authorization Service is running"}
 
-
+# Для локального запуска:
 # uvicorn services.auth_service.main:app --reload --port 8003
