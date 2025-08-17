@@ -1,16 +1,17 @@
-# Используем официальный образ Python 3.10 (slim)
 FROM python:3.10-slim
 
-# Рабочая директория внутри контейнера
 WORKDIR /app
 
-# Копируем requirements и ставим зависимости
-COPY services/review_service/requirements.txt .
-RUN pip install --upgrade pip && pip install -r requirements.txt
+# Копируем common
+COPY common /app/common
 
-# Устанавливаем системные зависимости
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+# Копируем requirements и ставим зависимости
+COPY services/review_service/requirements.txt /app/requirements.txt
+RUN python -m pip install --upgrade pip \
+    && pip install --no-cache-dir -r /app/requirements.txt
+
+# Системные зависимости
+RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         gnupg2 \
         unixodbc \
@@ -19,21 +20,16 @@ RUN apt-get update && \
         g++ \
         libpq-dev \
         apt-transport-https \
-        ca-certificates && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+        ca-certificates \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Копируем весь каталог конкретного сервиса
-COPY services/review_service ./services/review_service
+# Копируем **только каталог review_service**, чтобы структура была как в других сервисах
+COPY services/review_service /app/services/review_service
 
-# Если есть общие модули
-COPY common ./common
+# PYTHONPATH
+ENV PYTHONPATH=/app
 
-# Настраиваем PYTHONPATH для корректных импортов
-ENV PYTHONPATH=/app:/app/common
-
-# Экспорт порта
+# Порт и запуск
 EXPOSE 8008
-
-# Команда запуска
 CMD ["uvicorn", "services.review_service.main:app", "--host", "0.0.0.0", "--port", "8008"]
 
