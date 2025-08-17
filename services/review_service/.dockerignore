@@ -1,0 +1,40 @@
+# services/review_service/.dockerignore
+# Python: временные и компилированные файлы
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Тесты (если не нужны в образе)
+tests/
+*.egg-info/
+
+# IDE/редакторы
+.vscode/
+.idea/
+
+# Виртуальные окружения
+venv/
+.venv/
+
+#  Локальные БД и временные данные
+db.sqlite3
+*.db
+data/
+
+# Логи
+logs/
+*.log
+
+# Docker служебные
+Dockerfile*
+.dockerignore
+.env.docker
+
+# Node.js и фронтенд-мусор (если случайно добавлены)
+node_modules/
+yarn-error.log
+
+# Временные файлы редакторов
+*.swp
+*.bak
