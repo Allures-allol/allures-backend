@@ -2,8 +2,24 @@ version: "3.9"
 
 services:
   auth_service:
-    extends:
-      file: services/auth_service/docker-compose.auth_service.yml
-      service: auth_service
+    build:
+      context: .
+      dockerfile: services/auth_service/Dockerfile
+    container_name: auth_service
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    environment:
+      PYTHONPATH: /app
+      TZ: "Europe/Kyiv"
+    command: uvicorn services.auth_service.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8003:8000"
+    networks:
+      - backend-net
+
+networks:
+  backend-net:
+    driver: bridge
 
   # позже добавишь admin_service и т.д.
