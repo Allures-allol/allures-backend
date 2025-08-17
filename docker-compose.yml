@@ -1,0 +1,9 @@
+version: "3.9"
+
+services:
+  auth_service:
+    extends:
+      file: services/auth_service/docker-compose.auth_service.yml
+      service: auth_service
+
+  # позже добавишь admin_service и т.д.
