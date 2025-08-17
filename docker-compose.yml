@@ -1,4 +1,3 @@
-version: "3.9"
 
 services:
   auth_service:
@@ -18,8 +17,23 @@ services:
     networks:
       - backend-net
 
+  product_service:
+    build:
+      context: .
+      dockerfile: services/product_service/Dockerfile
+    container_name: product_service
+    restart: unless-stopped
+    env_file:
+      - /home/adminden/.env   # в нём должны быть: MAINDB_URL, REVIEW_SERVICE_URL и т.д.
+    environment:
+      PYTHONPATH: /app
+      TZ: "Europe/Kyiv"
+    command: uvicorn services.product_service.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"           # для локальной проверки; в проде можно убрать и ходить через прокси
+    networks:
+      - backend-net
+
 networks:
   backend-net:
     driver: bridge
-
-  # позже добавишь admin_service и т.д.

@@ -28,7 +28,12 @@ from services.product_service.api.routes import router as product_router
 # Загрузка .env переменных
 load_dotenv()
 
-app = FastAPI(title="Product Service")
+app = FastAPI(
+    title="Product Service",
+    docs_url="/products/docs",
+    redoc_url="/products/redoc",
+    openapi_url="/products/openapi.json",
+)
 
 app.add_middleware(
     CORSMiddleware,
