@@ -6,20 +6,22 @@ import os
 # Добавление корневого пути (чтобы импортировать общие модули)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))  # доступ к /services и /common
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
-from common.models.products import Product
-from common.models.categories import Category
-
+from sqlalchemy.orm import Session
 from common.db.session import get_db
 from common.config.settings import settings
 
-from services.product_service.api.routes import router as product_router
-# from services.product_service.api import image_classifier_router
+from common.models.products import Product as ProductModel
+from common.models.categories import Category as CategoryModel
 
+from services.product_service.api.routes import router as product_router
+
+# from services.product_service.api import image_classifier_router
 # from services.review_service.api.routes import router as review_router
+
 # from graphql_app.schema import schema as review_schema
 # from strawberry.fastapi import GraphQLRouter
 
@@ -92,6 +94,16 @@ def check_db():
         return {"error": str(e)}
     finally:
         db.close()
+
+@app.get("/__debug/db_url")
+def debug_db_url():
+    import os
+    return {"MAINDB_URL": os.getenv("MAINDB_URL", "(not set)")}
+
+@app.get("/__debug/products_count")
+def debug_products_count(db: Session = Depends(get_db)):
+    return {"count": db.query(ProductModel).count()}
+
 # GraphQL (в будущем можно раскомментировать)
 # graphql_app = GraphQLRouter(review_schema)
 # app.include_router(graphql_app, prefix="/graphql_app")

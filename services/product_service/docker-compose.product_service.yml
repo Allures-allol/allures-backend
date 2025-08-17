@@ -1,0 +1,22 @@
+
+services:
+  product_service:
+    build:
+      context: .
+      dockerfile: services/product_service/Dockerfile
+    container_name: product_service
+    env_file:
+      - .env        # или .env.prod
+    environment:
+      PYTHONPATH: /app:/app/common
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app      # удобно для разработки; в проде убрать
+    restart: unless-stopped
+    networks:
+      - allures-network
+
+networks:
+  allures-network:
+    driver: bridge
