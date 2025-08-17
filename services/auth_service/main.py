@@ -29,8 +29,15 @@ app = FastAPI(
     title="Authorization Service",
     version="1.0.0",
     swagger_ui_parameters={"persistAuthorization": True},
-    root_path="/auth"    #ДОБАВИЛ НОВОЕ!!!!!!!!
+    docs_url="/auth/docs",         # Swagger
+    redoc_url="/auth/redoc",       # ReDoc
+    openapi_url="/auth/openapi.json"
 )
+
+# Роутер с правильным префиксом
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(profile_router, prefix="/profile", tags=["profile"])
+
 
 # --- CORS ---
 ALLOWED_ORIGINS = [
