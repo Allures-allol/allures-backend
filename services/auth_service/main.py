@@ -29,6 +29,7 @@ app = FastAPI(
     title="Authorization Service",
     version="1.0.0",
     swagger_ui_parameters={"persistAuthorization": True},
+    root_path="/auth"    #ДОБАВИЛ НОВОЕ!!!!!!!!
 )
 
 # --- CORS ---
