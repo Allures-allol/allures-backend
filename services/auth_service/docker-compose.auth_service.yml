@@ -18,5 +18,5 @@ services:
     networks: [auth-net]
 
 networks:
-  auth-net:
+  backend-net:
     driver: bridge
