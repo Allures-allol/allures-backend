@@ -4,7 +4,7 @@ FROM python:3.10-slim
 WORKDIR /app
 
 COPY services/review_service/requirements.txt .
-COPY services/review_service/main.py
+COPY services/review_service/main.py .
 
 
 RUN pip install --upgrade pip && pip install -r requirements.txt
