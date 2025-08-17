@@ -3,7 +3,7 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY services/review_service/requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 RUN apt-get update && \
