@@ -1,0 +1,16 @@
+# --- Код → LF ---
+*.py   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.ini  text eol=lf
+*.sql  text eol=lf
+
+# --- Бинарники ---
+*.pickle binary
+*.pkl    binary
+*.zip    binary
+*.gz     binary
+
+# --- NLTK датасеты: не тритим как текст + исключаем из архивов ---
+sentiment/nltk_data/** binary
+sentiment/nltk_data/** export-ignore

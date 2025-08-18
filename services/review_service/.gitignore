@@ -8,3 +8,5 @@ env/
 venv/
 .env
 .env.*
+sentiment/nltk_data/
+.DS_Store
