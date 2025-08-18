@@ -1,13 +1,11 @@
-anyio==4.4.0
-fastapi==0.115.13
-pydantic==2.8.2
-pydantic-core==2.20.1
-uvicorn[standard]==0.30.6
-starlette==0.41.2
-SQLAlchemy==2.0.31
-httpx==0.27.2
+# services/review_service/requirements.txt
+fastapi==0.111.0
+uvicorn[standard]==0.30.0
+SQLAlchemy==2.0.30
 psycopg2-binary==2.9.9
+pydantic==2.7.4
 python-dotenv==1.0.1
+<<<<<<< Updated upstream
 pydantic_settings==2.2.1
 CacheControl==0.14.3
 Faker==37.4.0
@@ -133,3 +131,7 @@ websockets==15.0.1
 wsproto==1
 yarl==1.20.0
 nltk
+=======
+httpx==0.27.0
+nltk==3.8.1
+>>>>>>> Stashed changes

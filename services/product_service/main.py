@@ -27,38 +27,38 @@ load_dotenv()
 
 app = FastAPI(
     title="Product Service",
-    root_path="/product",       # прод-префикс: https://api.../product/*
-    docs_url="/docs",           # https://api.../product/docs
+    # если на проде прокси монтирует /product как root_path — оставь:
+    root_path="/product",
+    docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/openapi.json"
+    openapi_url="/openapi.json",
 )
+
+# CORS
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://api.alluresallol.com",
+    "https://alluresallol.com",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://api.alluresallol.com",
-        "https://alluresallol.com",
-    ],
-    allow_credentials=True,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Проверка: вывод URL подключения
 print(" MAINDB_URL из settings:", settings.MAINDB_URL)
 
-# Подключаем REST маршруты
+# важно: роутер с префиксом
+from services.product_service.api.routes import router as product_router
 app.include_router(product_router, prefix="/products", tags=["Products"])
 
-# app.include_router(review_router, prefix="/reviews", tags=["Reviews"])
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
-# app.include_router(image_classifier_router.router, prefix="/product", tags=["AI classifier"])
-
-# db_url = os.getenv("MAINDB_URL")
-# print(" MAINDB_URL:", db_url)
-
-# Проверка подключения к БД
 @app.on_event("startup")
 def startup_event():
     db_gen = get_db()
@@ -71,15 +71,11 @@ def startup_event():
     finally:
         db.close()
 
-# Загрузка модели при старте
-# from common.utils.model_utils import check_model_exists
-#
-# @app.on_event("startup")
-# def startup_check_model():
-#     try:
-#         check_model_exists()
-#     except Exception as e:
-#         print(" Ошибка при старте сервиса:", str(e))
+# app.include_router(review_router, prefix="/reviews", tags=["Reviews"])
+# app.include_router(image_classifier_router.router, prefix="/product", tags=["AI classifier"])
+
+# db_url = os.getenv("MAINDB_URL")
+# print(" MAINDB_URL:", db_url)
 
 @app.get("/")
 def root():

@@ -5,10 +5,10 @@ from common.models.products import Product
 from services.review_service.models.review import Review
 from services.review_service.sentiment.analyzer import analyze_sentiment
 from services.review_service.logic.recommendation import process_user_query, keyword_match
-from services.review_service.common.config.settings_review import settings_review
+from common.config.settings import settings
 
 # Подключение к базе данных
-DATABASE_URL = settings_review.MAINDB_URL
+DATABASE_URL = settings.MAINDB_URL
 engine = create_engine(DATABASE_URL, future=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

@@ -1,3 +1,9 @@
+# docker-compose.yml (корень) — ДОБАВЬ сервис review_service
+version: "3.9"
+
+networks:
+  backend-net:
+    driver: bridge
 
 services:
   auth_service:
@@ -24,16 +30,30 @@ services:
     container_name: product_service
     restart: unless-stopped
     env_file:
-      - /home/adminden/.env   # в нём должны быть: MAINDB_URL, REVIEW_SERVICE_URL и т.д.
+      - /home/adminden/.env
     environment:
       PYTHONPATH: /app
       TZ: "Europe/Kyiv"
     command: uvicorn services.product_service.main:app --host 0.0.0.0 --port 8000
     ports:
-      - "8000:8000"           # для локальной проверки; в проде можно убрать и ходить через прокси
+      - "8000:8000"
     networks:
       - backend-net
 
-networks:
-  backend-net:
-    driver: bridge
+  review_service:
+    build:
+      context: .
+      dockerfile: services/review_service/Dockerfile
+    container_name: review_service
+    restart: unless-stopped
+    env_file:
+      - /home/adminden/.env
+    environment:
+      PYTHONPATH: /app
+      TZ: "Europe/Kyiv"
+    command: uvicorn services.review_service.main:app --host 0.0.0.0 --port 8000
+    # Для прод прокси — порт можно убрать; для локалки оставь:
+    ports:
+      - "8002:8000"
+    networks:
+      - backend-net

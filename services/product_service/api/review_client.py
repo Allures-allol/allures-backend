@@ -1,16 +1,18 @@
 # services/product_service/api/review_client.py
-# services/product_service/api/review_client.py
-import httpx
+
 from typing import List, Optional
 from pydantic import BaseModel
+import httpx
 from common.config.settings import settings
 
 class ReviewOut(BaseModel):
     id: int
     product_id: int
     user_id: int
-    rating: float
-    comment: Optional[str] = None
+    text: str
+    sentiment: Optional[str] = None
+    pos_score: Optional[float] = None
+    neg_score: Optional[float] = None
     created_at: Optional[str] = None
 
 class RecommendationOut(BaseModel):
@@ -22,7 +24,7 @@ class RecommendationOut(BaseModel):
 class ReviewsClient:
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip("/")
-        self._client = httpx.Client(timeout=5.0)  # короче таймаут
+        self._client = httpx.Client(timeout=5.0)
 
     def get_reviews_by_product(self, product_id: int) -> List[ReviewOut]:
         url = f"{self.base_url}/reviews/product/{product_id}"
@@ -31,10 +33,8 @@ class ReviewsClient:
             r.raise_for_status()
             return [ReviewOut(**x) for x in r.json()]
         except httpx.RequestError:
-            # сервис недоступен — возвращаем пусто, а не 502
             return []
-        except httpx.HTTPStatusError as e:
-            # если сам сервис вернул 4xx/5xx — пробрасываем наверх
+        except httpx.HTTPStatusError:
             raise
 
     def get_user_recommendations(self, user_id: int) -> List[RecommendationOut]:

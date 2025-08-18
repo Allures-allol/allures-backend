@@ -12,6 +12,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from common.db.base import Base
 from common.db.session import engine, get_db
+from common.config.settings import settings
+
 from common.models.products import Product
 from common.models.categories import Category
 from common.models.payment import Payment

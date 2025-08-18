@@ -14,7 +14,7 @@ env/
 ENV/
 venv/
 .env
-.env.*
+../../.env.prod
 
 # ================== Logs / coverage ==================
 *.log
@@ -48,3 +48,6 @@ assets/images/
 *.onnx
 *.h5
 checkpoints/
+
+# ================== editor junk==================
+*.swp

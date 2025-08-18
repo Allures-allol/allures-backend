@@ -1,0 +1,6 @@
+# services/review_service/requirements.dev.txt
+ipython
+pytest
+pytest-cov
+httpx
+requests

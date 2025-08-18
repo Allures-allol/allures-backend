@@ -1,10 +1,14 @@
 # services/review_service/api/routes.py
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy import func
+from typing import List, Optional
 
 from common.db.session import get_db
-from common.models.products import Product as ProductModel
+from services.review_service.api import controller
+from services.review_service.logic.recommendation import (
+    Product, recommend_products, save_recommendations_to_db
+)
 from services.review_service.models.review import Review
 from services.review_service.models.recommendation import Recommendation
 from services.review_service.api.schemas import (
@@ -12,15 +16,12 @@ from services.review_service.api.schemas import (
     RecommendationCreate, RecommendationOut,
     QueryRequest, ProductOut
 )
-from services.review_service.api import controller
 from services.review_service.api.crud import (
-    get_reviews_by_subscription_name,
     create_recommendation, update_recommendation,
     delete_recommendation, get_recommendations_filtered
 )
-from services.review_service.logic.recommendation import (
-    Product, recommend_products, save_recommendations_to_db
-)
+from common.models.products import Product as ProductModel
+from common.models.subscriptions import Subscription, UserSubscription
 
 router = APIRouter()
 
@@ -42,12 +43,55 @@ def get_all_reviews(db: Session = Depends(get_db)):
 def get_reviews_by_user(user_id: int, db: Session = Depends(get_db)):
     return db.query(Review).filter(Review.user_id == user_id).all()
 
+
 @router.get("/by-subscription", response_model=List[ReviewOut])
 def reviews_by_subscription(
-    subscription_name: str = Query(..., description="Назва підписки (наприклад, Базовий, Продвинутий, Преміум)"),
-    db: Session = Depends(get_db)
+    subscription_name: Optional[str] = Query(
+        None,
+        description="Имя/назва/name: Базовий|Базовый|basic / Просунутий|Продвинутый|advanced / Преміум|Премиум|premium"
+    ),
+    lang: Optional[str] = Query(None, description="Фильтр по языку ('ru'|'uk'|'en'), опционально"),
+    subscription_id: Optional[int] = Query(None, description="ID підписки"),
+    db: Session = Depends(get_db),
 ):
-    return get_reviews_by_subscription_name(db, subscription_name)
+    q = (
+        db.query(Review)
+        .join(UserSubscription, Review.user_id == UserSubscription.user_id)
+        .join(Subscription, UserSubscription.subscription_id == Subscription.id)
+    )
+
+    if subscription_id is not None:
+        q = q.filter(Subscription.id == subscription_id)
+
+    elif subscription_name:
+        norm = subscription_name.strip().lower()
+        syn_to_code = {
+            "базовий": "basic", "базовый": "basic", "basic": "basic",
+            "просунутий": "advanced", "продвинутый": "advanced", "advanced": "advanced",
+            "преміум": "premium", "премиум": "premium", "premium": "premium",
+        }
+        code = syn_to_code.get(norm)
+        if code:
+            q = q.filter(Subscription.code == code)
+        else:
+            # точное совпадение по name (в нижнем регистре, без пробелов по краям)
+            q = q.filter(func.lower(func.btrim(Subscription.name)) == norm)
+    else:
+        raise HTTPException(status_code=400, detail="Provide subscription_id or subscription_name")
+
+    if lang:
+        lang_norm = lang.strip().lower()
+        allowed = {"ru", "uk", "en"}
+        if lang_norm not in allowed:
+            raise HTTPException(status_code=400, detail="lang must be 'ru', 'uk' or 'en'")
+
+        # поддерживаем разные схемы: lang_code ИЛИ lang
+        lang_attr = getattr(Subscription, "lang_code", None) or getattr(Subscription, "lang", None)
+        if lang_attr is not None:
+            q = q.filter(func.lower(lang_attr) == lang_norm)
+        # если поля языка нет — просто не фильтруем, чтобы не было 500
+
+    return q.order_by(Review.created_at.desc()).all()
 
 # === RECOMMENDATIONS ===
 @router.get("/recommendations/", response_model=List[RecommendationOut])
