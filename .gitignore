@@ -1,0 +1,53 @@
+@"
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual env
+.venv/
+env/
+venv/
+ENV/
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs & tests cache
+*.log
+logs/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Docker (опционально)
+docker-compose.override.yml
+
+# Datasets/media (если бывают)
+dataset/
+data/
+assets/images/
+mock_static/
+fashion-dataset/
+
+# Node (если вдруг)
+node_modules/
+
+# NLTK локальные датасеты (чтобы снова не попали)
+services/review_service/sentiment/nltk_data/
+"@ | Set-Content -Encoding UTF8 .gitignore
