@@ -1,0 +1,4 @@
+-r requirements.txt
+alembic==1.15.2
+pytest==8.3.5
+pip-audit==2.9.0

@@ -1,0 +1,57 @@
+# ================== Python build artifacts ==================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+
+# ================== Virtual environments ==================
+.venv/
+env/
+ENV/
+venv/
+.env
+.env.*
+../../.env.prod
+
+# ================== Logs / coverage ==================
+*.log
+logs/
+*.sqlite
+*.sqlite3
+*.db
+htmlcov/
+.coverage
+.pytest_cache/
+
+# ================== IDE / OS ==================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ================== Docker ==================
+.dockerignore
+docker-compose.override.yml
+
+# ================== Node / misc ==================
+node_modules/
+
+# ================== Datasets / media ==================
+dataset/
+fashion-dataset/
+mock_static/
+assets/images/
+
+# ================== ML ==================
+*.pt
+*.pth
+*.onnx
+*.h5
+checkpoints/
+
+# ================== editor junk ==================
+*.swp

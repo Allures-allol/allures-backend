@@ -1,8 +1,7 @@
-# docker-compose.yml (корень) — ДОБАВЬ сервис review_service
-version: "3.9"
+
 
 networks:
-  backend-net:
+  allures-network:
     driver: bridge
 
 services:
@@ -15,13 +14,13 @@ services:
     env_file:
       - /home/adminden/.env
     environment:
-      PYTHONPATH: /app
+      PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
     command: uvicorn services.auth_service.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8003:8000"
     networks:
-      - backend-net
+      - allures-network
 
   product_service:
     build:
@@ -32,13 +31,13 @@ services:
     env_file:
       - /home/adminden/.env
     environment:
-      PYTHONPATH: /app
+      PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
     command: uvicorn services.product_service.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     networks:
-      - backend-net
+      - allures-network
 
   review_service:
     build:
@@ -49,11 +48,30 @@ services:
     env_file:
       - /home/adminden/.env
     environment:
-      PYTHONPATH: /app
+      PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
     command: uvicorn services.review_service.main:app --host 0.0.0.0 --port 8000
-    # Для прод прокси — порт можно убрать; для локалки оставь:
     ports:
       - "8002:8000"
     networks:
-      - backend-net
+      - allures-network
+
+  subscription_service:
+    build:
+      context: .
+      dockerfile: services/subscription_service/Dockerfile
+    container_name: subscription_service
+    restart: unless-stopped
+    env_file:
+      - /home/adminden/.env
+    environment:
+      PYTHONPATH: /app:/app/common
+      TZ: "Europe/Kyiv"
+    command: uvicorn services.subscription_service.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8011:8000"
+    networks:
+      - allures-network
+
+
+

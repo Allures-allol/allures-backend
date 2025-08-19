@@ -1,8 +1,4 @@
-# services/review_service/docker-compose.review_service.yml
 
-networks:
-  backend-net:
-    driver: bridge
 
 services:
   review_service:
@@ -12,12 +8,16 @@ services:
     container_name: review_service
     restart: unless-stopped
     env_file:
-      - .env.prod
+      - /home/adminden/.env
     environment:
       PYTHONPATH: /app
       TZ: "Europe/Kyiv"
     command: uvicorn services.review_service.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8002:8000"
-    networks:
-      - backend-net
+    networks: [review-net]
+
+networks:
+  backend-net:
+    driver: bridge
+

@@ -1,0 +1,26 @@
+
+
+version: "3.9"
+
+services:
+  subscription_service:
+    build:
+      context: .
+      dockerfile: services/subscription_service/Dockerfile
+    container_name: subscription_service
+    restart: unless-stopped
+    env_file:
+      - /home/adminden/.env
+    environment:
+      PYTHONPATH: /app:/app/common
+      TZ: "Europe/Kyiv"
+    command: uvicorn services.subscription_service.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8011:8000"
+    networks:
+      - subscription-net
+
+networks:
+  subscription-net:
+    driver: bridge
+

@@ -2,6 +2,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, text
 from datetime import datetime
 from common.db.base import Base
+from sqlalchemy.orm import relationship, Mapped
 
 class User(Base):
     __tablename__ = "users"
@@ -25,4 +26,3 @@ class User(Base):
     # __table_args__ = (
     #     Index("uq_users_email", "email", unique=True, postgresql_where=text("email IS NOT NULL")),
     # )
-
