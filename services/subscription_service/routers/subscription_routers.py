@@ -1,5 +1,4 @@
 # services/subscription_service/routers/subscription_routers.py
-# services/subscription_service/routers/subscription_routers.py
 
 from __future__ import annotations
 from typing import List, Optional, Tuple
@@ -8,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from common.db.session import get_db
-from common.models.subscriptions import Subscription, UserSubscription  # <-- singular module
-
+from common.models.subscriptions import Subscription, UserSubscription
+from services.subscription_service.utils.security import get_user_id_optional
 from services.subscription_service.crud import subscription_crud
 from services.subscription_service.schemas.subscription_schemas import (
     SubscriptionOut,
@@ -117,17 +116,16 @@ def start_free_subscription(
     return {"message": "Бесплатная подписка успешно активирована", "subscription_id": new_sub.id}
 
 
-@router.post("/activate")
-def activate_subscription(
-    user_id: int,
-    payment_id: int,
+@router.get("/active", response_model=UserSubscriptionOut)
+def get_active_subscription(
+    user_id_q: Optional[int] = Query(None),                   # временный фоллбек
+    user_id_tok: Optional[int] = Depends(get_user_id_optional),
     db: Session = Depends(get_db),
 ):
-    new_sub = subscription_crud.activate_subscription_from_payment(
-        db, user_id=user_id, payment_id=payment_id
-    )
-    return {"message": "Подписка успешно активирована", "subscription_id": new_sub.id}
-
+    user_id = user_id_tok or user_id_q
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Auth required")
+    return subscription_crud.get_user_active_subscription(db, user_id)
 
 @router.post("/activate-by-code")
 def activate_by_code(
