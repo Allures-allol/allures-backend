@@ -1,46 +1,109 @@
-import difflib
-from nltk.tokenize import word_tokenize
-from nltk.stem import WordNetLemmatizer
-import nltk
+# services/review_service/sentiment/analyzer.py
 import os
+import re
+import difflib
+from typing import List
 
-nltk_data_path = os.path.join(os.path.dirname(__file__), "nltk_data")
-if not os.path.exists(nltk_data_path):
-    os.makedirs(nltk_data_path, exist_ok=True)
+import nltk
+from nltk.tokenize import word_tokenize
 
-nltk.download('punkt', download_dir=nltk_data_path)
-nltk.download('wordnet', download_dir=nltk_data_path)
+# --- NLTK path & lazy ensure ---
+NLTK_DATA = os.environ.get("NLTK_DATA") or os.path.join(os.path.dirname(__file__), "nltk_data")
+os.makedirs(NLTK_DATA, exist_ok=True)
+if NLTK_DATA not in nltk.data.path:
+    nltk.data.path.append(NLTK_DATA)
 
-nltk.data.path.append(nltk_data_path)
+def _ensure(resource: str):
+    """Гарантируем наличие ресурса NLTK; при ошибке не валимся."""
+    try:
+        nltk.data.find(resource)
+    except LookupError:
+        try:
+            nltk.download(resource.split("/")[-1], download_dir=NLTK_DATA, quiet=True)
+        except Exception as e:
+            print(f"[nltk] can't ensure {resource}: {e}")
 
+# Пытаемся обеспечить 'punkt'; при фейле будет фолбэк
+_ensure("tokenizers/punkt")
 
-lemmatizer = WordNetLemmatizer()
+# WordNet лемматизация для английского — опциональна; для RU/UK вернёт слово как есть.
+try:
+    from nltk.stem import WordNetLemmatizer
+    _ensure("corpora/wordnet")
+    _lemmatizer = WordNetLemmatizer()
+    def _lem(w: str) -> str:
+        try:
+            return _lemmatizer.lemmatize(w)
+        except Exception:
+            return w
+except Exception:
+    def _lem(w: str) -> str:
+        return w
 
-positive_words = ["качественный", "удобный", "красивый", "отличный"]
-negative_words = ["плохой", "медленный", "разочарован", "ненадежный"]
+# --- Лексиконы (RU + UK, можно расширять) ---
+POSITIVE_WORDS = [
+    "качественный", "удобный", "красивый", "отличный", "классный", "хороший", "нравится",
+    "чудовий", "зручний", "стильний", "класний", "відмінний", "гарний", "якісний"
+]
+NEGATIVE_WORDS = [
+    "плохой", "медленный", "разочарован", "ненадежный", "ужасный", "плохая", "не понравилось", "тусклый",
+    "поганий", "повільний", "розчарований", "ненадійний", "жахливий", "тьмяний", "не сподобалось"
+]
 
-def get_similarity(word, word_list):
-    return max([difflib.SequenceMatcher(None, word, w).ratio() for w in word_list], default=0)
+# --- Утилиты ---
+def _tokenize(text: str) -> List[str]:
+    """Пытаемся токенизировать через punkt; если его нет — простой regex."""
+    try:
+        toks = word_tokenize(text)
+        return [t for t in toks if t.isalpha()]
+    except Exception:
+        return re.findall(r"[A-Za-zА-Яа-яЁёІіЇїЄєҐґ]+", text)
 
+def _similarity_to_lexicon(word: str, lexicon: List[str]) -> float:
+    """max similarity к словам в лексиконе (0..1)."""
+    best = 0.0
+    for w in lexicon:
+        r = difflib.SequenceMatcher(None, word, w).ratio()
+        if r > best:
+            best = r
+    return best
+
+# --- Основная функция ---
 def analyze_sentiment(text: str):
-    tokens = word_tokenize(text.lower())
-    lexemes = [lemmatizer.lemmatize(w) for w in tokens if w.isalpha()]
+    # нормализация
+    text = (text or "").lower()
 
-    pos = [get_similarity(w, positive_words) for w in lexemes if get_similarity(w, positive_words) > 0.5]
-    neg = [get_similarity(w, negative_words) for w in lexemes if get_similarity(w, negative_words) > 0.5]
+    # токены -> "леммы" (для RU/UK лемматизатор английский, поэтому вернёт как есть — это ок)
+    tokens = _tokenize(text)
+    lexemes = [_lem(t) for t in tokens]
 
-    avg_pos = round(sum(pos) / len(pos) * 100, 2) if pos else 0
-    avg_neg = round(sum(neg) / len(neg) * 100, 2) if neg else 0
+    # считаем похожесть на позитив/негатив; берём только достаточно похожие слова
+    THRESHOLD = 0.6  # можно подстроить
+    pos_scores = []
+    neg_scores = []
+    for w in lexemes:
+        sp = _similarity_to_lexicon(w, POSITIVE_WORDS)
+        sn = _similarity_to_lexicon(w, NEGATIVE_WORDS)
+        if sp >= THRESHOLD:
+            pos_scores.append(sp)
+        if sn >= THRESHOLD:
+            neg_scores.append(sn)
 
-    if avg_pos > avg_neg and avg_pos > 50:
+    # усредняем (0..1), округляем до 2 знаков
+    avg_pos = round(sum(pos_scores) / len(pos_scores), 2) if pos_scores else 0.0
+    avg_neg = round(sum(neg_scores) / len(neg_scores), 2) if neg_scores else 0.0
+
+    # решение
+    DECISION_THRESHOLD = 0.6  # чтобы "нейтральный" не пропадал
+    if avg_pos > avg_neg and avg_pos >= DECISION_THRESHOLD:
         sentiment = "positive"
-    elif avg_neg > avg_pos and avg_neg > 50:
+    elif avg_neg > avg_pos and avg_neg >= DECISION_THRESHOLD:
         sentiment = "negative"
     else:
         sentiment = "neutral"
 
     return {
         "sentiment": sentiment,
-        "pos_score": avg_pos,
-        "neg_score": avg_neg
+        "pos_score": avg_pos,  # 0..1
+        "neg_score": avg_neg,  # 0..1
     }
