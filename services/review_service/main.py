@@ -28,7 +28,7 @@ load_dotenv()
 
 app = FastAPI(
     title="Review Service",
-    root_path="/reviews",        # ВНЕШНИЙ префикс
+    root_path="/review",        # ВНЕШНИЙ префикс
     docs_url="/docs",            # снаружи: /reviews/docs
     redoc_url="/redoc",
     openapi_url="/openapi.json",
