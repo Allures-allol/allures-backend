@@ -1,9 +1,7 @@
 # services/product_service/api/schemas.py
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, HttpUrl, model_validator
 from typing import  List, Optional
 from datetime import datetime
-
-
 
 # === Категория товара ===
 class CategoryCreate(BaseModel):
@@ -11,6 +9,46 @@ class CategoryCreate(BaseModel):
     description: Optional[str] = None
     subcategory: Optional[str] = None
     product_type: Optional[str] = None
+
+class Category(BaseModel):
+    category_id: int
+    category_name: str
+    description: Optional[str] = None
+    subcategory: Optional[str] = None
+    product_type: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class ProductCreateMinimal(BaseModel):
+    name: str
+    price: float
+    description: Optional[str] = ""
+    image: Optional[str] = None
+
+    # достаточно одного из двух:
+    category_id: Optional[int] = None
+    category_name: Optional[str] = None
+
+    subcategory: Optional[str] = None
+    product_type: Optional[str] = "physical"
+
+# === Категория товара ===
+class ProductCreate(BaseModel):
+    name: str
+    description: str
+    price: float
+    current_inventory: int = 0
+    status: str = "active"
+
+    category_id: int
+    category_name: str
+
+    # опционально
+    old_price: Optional[float] = None
+    image: Optional[str] = None
+    subcategory: Optional[str] = None
+    product_type: Optional[str] = "physical"
 
 class Category(BaseModel):
     category_id: int
@@ -63,22 +101,25 @@ class ProductOut(BaseModel):
     name: str
     description: str
     price: float
-    old_price: Optional[float]
-    image: Optional[str]
     status: str
     current_inventory: int
-    is_hit: Optional[bool]
-    is_discount: Optional[bool]
-    is_new: Optional[bool]
-    created_at: datetime
-    updated_at: datetime
     category_id: int
     category_name: str
+
+    old_price: Optional[float] = None
+    image: Optional[str] = None
     subcategory: Optional[str] = None
     product_type: Optional[str] = None
 
+    is_hit: bool
+    is_discount: bool
+    is_new: bool
+
+    created_at: datetime
+    updated_at: datetime
+
     class Config:
-        from_attributes = True
+        from_attributes = True  # для .from_orm() / возврата из ORM
 
 class InventoryCreate(BaseModel):
     product_id: int

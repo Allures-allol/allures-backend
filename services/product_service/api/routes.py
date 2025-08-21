@@ -1,7 +1,8 @@
 # services/product_service/api/routes.py
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from typing import List, Optional
 
 from common.db.session import get_db
@@ -11,9 +12,9 @@ from common.models.inventory import Inventory
 
 from services.product_service.api.schemas import (
     ProductCreate, ProductUpdate, ProductOut, ProductsPage, PageMeta,
-    InventoryCreate, CategoryCreate, Category as CategorySchema
+    InventoryCreate, CategoryCreate, Category as CategorySchema, ProductCreateMinimal
 )
-from services.product_service.api.review_client import (
+from services.product_service.clients.review_client import (
     reviews_client, ReviewOut, RecommendationOut
 )
 
@@ -170,38 +171,6 @@ def delete_category(category_id: int, db: Session = Depends(get_db), force: bool
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
-# ---------- PRODUCTS CRUD (последними) ----------
-@router.get("/{product_id}", response_model=ProductOut)
-def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
-    product = db.query(ProductModel).filter(ProductModel.id == product_id).first()
-    if not product:
-        raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
-    return product
-
-@router.post("/", response_model=ProductOut)
-def create_product(product: ProductCreate, db: Session = Depends(get_db)):
-    try:
-        category = db.query(CategoryModel).filter_by(category_id=product.category_id).first()
-        if not category:
-            raise HTTPException(status_code=404, detail=f"Category '{product.category_id}' not found")
-
-        db_product = ProductModel(**product.dict())
-        db.add(db_product)
-        db.commit()
-        db.refresh(db_product)
-
-        inventory_data = InventoryCreate(
-            product_id=db_product.id,
-            category_id=db_product.category_id,
-            inventory_quantity=db_product.current_inventory,
-        )
-        create_inventory(inventory_data, db)
-
-        return db_product
-    except SQLAlchemyError as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-
 @router.put("/{product_id}", response_model=ProductOut)
 def update_product(product_id: int, update: ProductUpdate, db: Session = Depends(get_db)):
     try:
@@ -241,3 +210,108 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     except SQLAlchemyError as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+# ---------- PRODUCTS CRUD (последними) ----------
+@router.get("/{product_id}", response_model=ProductOut)
+def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
+    product = db.query(ProductModel).filter(ProductModel.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
+    return product
+
+@router.post("/products/", response_model=ProductOut, status_code=201)
+def create_product_minimal(body: ProductCreateMinimal, db: Session = Depends(get_db)):
+    # 0) Требуем хотя бы один способ указать категорию
+    if body.category_id is None and not body.category_name:
+        raise HTTPException(status_code=400, detail="Укажите category_id или category_name")
+
+    # 1) Разрешаем категорию (нормализуем id+имя из БД)
+    category_id = body.category_id
+    category_name = body.category_name
+
+    if category_id is not None:
+        cat = (db.query(CategoryModel)
+                 .filter(CategoryModel.category_id == category_id)
+                 .first())
+        if not cat:
+            raise HTTPException(status_code=404, detail=f"Категория id={category_id} не найдена")
+        category_name = cat.category_name
+    else:
+        norm = body.category_name.strip().lower()
+        cat = (db.query(CategoryModel)
+                 .filter(func.lower(func.btrim(CategoryModel.category_name)) == norm)
+                 .order_by(CategoryModel.category_id.asc())
+                 .first())
+        if not cat:
+            raise HTTPException(status_code=404, detail=f"Категория '{body.category_name}' не найдена")
+        category_id = cat.category_id
+        category_name = cat.category_name
+
+    # 2) Явная пред-проверка дубликата по тем же правилам, что в уникальном индексе
+    name_norm = body.name.strip().lower()
+    duplicate = (db.query(ProductModel.id)
+                   .filter(
+                       func.lower(func.btrim(ProductModel.name)) == name_norm,
+                       ProductModel.category_id == category_id
+                   )
+                   .first())
+    if duplicate:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Товар '{body.name.strip()}' уже существует в категории id={category_id}"
+        )
+
+    # 3) Создаём товар с дефолтами на бэке
+    db_product = ProductModel(
+        name=body.name.strip(),
+        description=(body.description or "").strip(),
+        price=body.price,
+        old_price=None,
+        image=(body.image or None),
+        status="active",
+        current_inventory=0,
+        is_hit=False,
+        is_discount=False,
+        is_new=False,
+        category_id=category_id,
+        category_name=category_name,
+        subcategory=(body.subcategory or None),
+        product_type=body.product_type or "physical",
+    )
+
+    try:
+        db.add(db_product)
+        db.commit()
+        db.refresh(db_product)
+        return db_product
+
+
+    except IntegrityError as e:
+
+        db.rollback()
+
+        pgcode = getattr(getattr(e, "orig", None), "pgcode", None)
+
+        cname = getattr(getattr(getattr(e, "orig", None), "diag", None), "constraint_name", None)
+
+        if pgcode == "23505":
+
+            if cname == "products_pkey":
+                raise HTTPException(409, "Конфликт PK (products_pkey): вероятно, рассинхрон sequence. Нужен setval().")
+
+            raise HTTPException(409, f"Дубликат (unique constraint): {cname or 'unknown'}")
+
+        raise
+
+        if pgcode == "23503":  # foreign_key_violation
+            raise HTTPException(status_code=409, detail="Некорректная категория (FK violation)")
+
+        if pgcode == "23502":  # not_null_violation
+            raise HTTPException(status_code=422, detail="Нарушение NOT NULL")
+
+        # Иные ограничения — как 400/500 по вкусу
+        raise HTTPException(status_code=400, detail=f"Integrity error: {str(e)}")
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"DB error: {str(e)}")

@@ -1,5 +1,4 @@
 # services/subscription_service/crud/subscription_crud.py
-# services/subscription_service/crud/subscription_crud.py
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -11,68 +10,22 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from common.models.subscriptions import Subscription, UserSubscription
-from common.models.payment import Payment
 
-# Опциональные сущности (если они есть в проекте)
-try:
-    from common.models.review import Review  # noqa: F401
-except Exception:  # модель может отсутствовать
-    Review = None  # type: ignore
+# --------- constants / helpers ---------
+_ALLOWED_LANGS = {"uk", "ru", "en"}
 
-try:
-    from common.models.recommendation import Recommendation  # noqa: F401
-    from services.subscription_service.schemas.subscription_schemas import RecommendationCreate  # noqa: F401
-except Exception:
-    Recommendation = None  # type: ignore
-    RecommendationCreate = None  # type: ignore
-
-
-# ---------- ВСПОМОГАТЕЛЬНЫЕ ----------
-
-_ALLOWED_LANGS = {"ru", "uk", "en"}
-
-
-def _norm_code(value: Optional[str]) -> Optional[str]:
-    """Нормализуем код подписки: trim + lower + замена пробелов на дефисы."""
-    if not value:
-        return None
+def _norm(value: str) -> str:
+    """Нормализация: lower + trim + пробелы -> дефисы (как в отзывах)."""
     return "-".join(value.strip().lower().split())
 
-
-def _get_lang_attr():
-    """
-    Возвращает реальный столбец языка в модели Subscription, если он есть.
-    Поддерживает варианты: language, lang_code, lang.
-    """
-    return (
-        getattr(Subscription, "language", None)
-        or getattr(Subscription, "lang_code", None)
-        or getattr(Subscription, "lang", None)
-    )
-
-
-def _apply_lang_filter(q, lang: Optional[str]):
-    """Аккуратно применяем фильтр по языку, только если колонка есть и lang валиден."""
-    if not lang:
-        return q
-    lang_norm = lang.strip().lower()
-    if lang_norm not in _ALLOWED_LANGS:
-        raise HTTPException(status_code=400, detail="lang must be 'ru', 'uk' or 'en'")
-    lang_attr = _get_lang_attr()
-    if lang_attr is not None:
-        q = q.filter(func.lower(lang_attr) == lang_norm)
-    return q
-
-
-def _commit_or_rollback(db: Session):
+def _commit_or_rollback(db: Session) -> None:
     try:
         db.commit()
     except SQLAlchemyError as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"DB error: {str(e)}")
 
-
-# ---------- SUBSCRIPTIONS CRUD ----------
+# --------- subscriptions: list / lookup ---------
 
 def list_subscriptions(
     db: Session,
@@ -81,44 +34,47 @@ def list_subscriptions(
     limit: int = 100,
 ) -> List[Subscription]:
     q = db.query(Subscription)
-    q = _apply_lang_filter(q, lang)
-    return q.offset(max(offset, 0)).limit(min(max(limit, 1), 500)).all()
-
+    if lang:
+        lang_norm = lang.strip().lower()
+        if lang_norm not in _ALLOWED_LANGS:
+            raise HTTPException(status_code=400, detail="lang must be 'uk', 'ru' or 'en'")
+        q = q.filter(func.lower(Subscription.language) == lang_norm)
+    return q.order_by(Subscription.id.asc()).offset(offset).limit(limit).all()
 
 def get_subscription_by_code(
     db: Session,
     code_or_name: str,
     lang: Optional[str] = None,
 ) -> Optional[Subscription]:
-    """
-    Получить подписку по коду (приоритет) или fallback по name (нижний регистр + trim).
-    """
+    if not code_or_name:
+        return None
+    code_or_name = _norm(code_or_name)
+
     q = db.query(Subscription)
-    q = _apply_lang_filter(q, lang)
+    if lang:
+        lang_norm = lang.strip().lower()
+        if lang_norm not in _ALLOWED_LANGS:
+            raise HTTPException(status_code=400, detail="lang must be 'uk', 'ru' or 'en'")
+        q = q.filter(func.lower(Subscription.language) == lang_norm)
 
-    code = _norm_code(code_or_name)
-    if code:
-        q1 = q.filter(func.lower(func.btrim(Subscription.code)) == code)
-        sub = q1.first()
-        if sub:
-            return sub
+    # name_norm: lower(trim(name)) с пробелами -> '-'
+    name_norm = func.replace(func.lower(func.btrim(Subscription.name)), " ", "-")
+    q = q.filter(
+        (func.lower(Subscription.code) == code_or_name) |
+        (name_norm == code_or_name)
+    )
+    return q.first()
 
-    # Fallback — точное совпадение по name (lower + trim)
-    norm = code_or_name.strip().lower()
-    q2 = q.filter(func.lower(func.btrim(Subscription.name)) == norm)
-    return q2.first()
-
+# --------- user subscriptions ---------
 
 def get_user_active_subscription(db: Session, user_id: int) -> UserSubscription:
-    us = (
-        db.query(UserSubscription)
-        .filter(UserSubscription.user_id == user_id, UserSubscription.is_active.is_(True))
-        .first()
-    )
+    us = db.query(UserSubscription).filter(
+        UserSubscription.user_id == user_id,
+        UserSubscription.is_active.is_(True),
+    ).first()
     if not us:
         raise HTTPException(status_code=404, detail="Нет активной подписки")
     return us
-
 
 def get_user_subscription_history(
     db: Session,
@@ -131,38 +87,34 @@ def get_user_subscription_history(
         .filter(UserSubscription.user_id == user_id)
         .order_by(UserSubscription.start_date.desc())
     )
-    return q.offset(max(offset, 0)).limit(min(max(limit, 1), 500)).all()
-
+    offset = max(0, offset)
+    limit = min(max(1, limit), 500)
+    return q.offset(offset).limit(limit).all()
 
 def deactivate_user_subscription(db: Session, user_id: int) -> int:
-    updated = (
-        db.query(UserSubscription)
-        .filter(UserSubscription.user_id == user_id, UserSubscription.is_active.is_(True))
-        .update({"is_active": False})
-    )
+    updated = db.query(UserSubscription).filter(
+        UserSubscription.user_id == user_id,
+        UserSubscription.is_active.is_(True),
+    ).update({"is_active": False})
     _commit_or_rollback(db)
     return updated
 
-
 def set_auto_renew(db: Session, user_id: int, enable: bool) -> int:
-    active_sub = (
-        db.query(UserSubscription)
-        .filter(UserSubscription.user_id == user_id, UserSubscription.is_active.is_(True))
-        .first()
-    )
+    active_sub = db.query(UserSubscription).filter(
+        UserSubscription.user_id == user_id,
+        UserSubscription.is_active.is_(True),
+    ).first()
     if not active_sub:
         raise HTTPException(status_code=404, detail="Нет активной подписки")
     active_sub.auto_renew = bool(enable)
     _commit_or_rollback(db)
     return 1
 
-
-def _deactivate_all_active(db: Session, user_id: int):
+def _deactivate_all_active(db: Session, user_id: int) -> None:
     db.query(UserSubscription).filter(
         UserSubscription.user_id == user_id,
         UserSubscription.is_active.is_(True),
     ).update({"is_active": False})
-
 
 def _activate_new_subscription(
     db: Session,
@@ -185,8 +137,35 @@ def _activate_new_subscription(
     db.refresh(new_sub)
     return new_sub
 
+def activate_subscription_by_code(
+    db: Session,
+    user_id: int,
+    code_or_name: str,
+    lang: Optional[str] = None,
+) -> UserSubscription:
+    sub = get_subscription_by_code(db, code_or_name, lang)
+    if not sub:
+        raise HTTPException(status_code=404, detail="Подписка не найдена")
+
+    existing = db.query(UserSubscription).filter(
+        UserSubscription.user_id == user_id,
+        UserSubscription.subscription_id == sub.id,
+        UserSubscription.is_active.is_(True),
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="У пользователя уже есть активная подписка с этим кодом")
+
+    _deactivate_all_active(db, user_id)
+    return _activate_new_subscription(db, user_id, sub)
+
+# --------- payments (ленивый импорт) ---------
 
 def activate_subscription_from_payment(db: Session, user_id: int, payment_id: int) -> UserSubscription:
+    try:
+        from common.models.payment import Payment  # импорт только здесь
+    except Exception:
+        raise HTTPException(status_code=501, detail="Payment model not available")
+
     payment = db.query(Payment).filter(Payment.id == payment_id).first()
     if not payment:
         raise HTTPException(status_code=404, detail="Оплата не найдена")
@@ -198,60 +177,23 @@ def activate_subscription_from_payment(db: Session, user_id: int, payment_id: in
     _deactivate_all_active(db, user_id)
     return _activate_new_subscription(db, user_id, sub, payment_id=payment.id)
 
+# --------- analytics ---------
 
-def activate_subscription_by_code(
-    db: Session,
-    user_id: int,
-    code_or_name: str,
-    lang: Optional[str] = None,
-) -> UserSubscription:
-    sub = get_subscription_by_code(db, code_or_name, lang)
-    if not sub:
-        raise HTTPException(status_code=404, detail="Подписка не найдена")
-
-    # Не даём активировать ту же активную подписку повторно
-    existing = (
-        db.query(UserSubscription)
-        .filter(
-            UserSubscription.user_id == user_id,
-            UserSubscription.subscription_id == sub.id,
-            UserSubscription.is_active.is_(True),
-        )
-        .first()
-    )
-    if existing:
-        raise HTTPException(status_code=400, detail="У пользователя уже есть активная подписка с этим кодом")
-
-    _deactivate_all_active(db, user_id)
-    return _activate_new_subscription(db, user_id, sub)
-
-
-# ---------- ANALYTICS / REPORTING (по аналогии со стилем reviews) ----------
-
-def count_active_by_plan(
-    db: Session,
-    lang: Optional[str] = None,
-) -> List[Tuple[str, int]]:
-    """
-    Возвращает список пар (code, count) по активным подпискам.
-    Учитывает язык, если поле языка есть у модели.
-    """
+def count_active_by_plan(db: Session, lang: Optional[str] = None) -> List[Tuple[str, int]]:
     q = (
         db.query(Subscription.code, func.count(UserSubscription.id))
         .join(UserSubscription, UserSubscription.subscription_id == Subscription.id)
         .filter(UserSubscription.is_active.is_(True))
         .group_by(Subscription.code)
     )
-    lang_attr = _get_lang_attr()
-    if lang and lang_attr is not None:
+    if lang:
         lang_norm = lang.strip().lower()
         if lang_norm not in _ALLOWED_LANGS:
-            raise HTTPException(status_code=400, detail="lang must be 'ru', 'uk' or 'en'")
-        q = q.filter(func.lower(lang_attr) == lang_norm)
+            raise HTTPException(status_code=400, detail="lang must be 'uk', 'ru' or 'en'")
+        q = q.filter(func.lower(Subscription.language) == lang_norm)
     return q.all()
 
-
-# ---------- Связанные отзывы по подписке (если модель Review есть) ----------
+# --------- reviews (полностью опционально и лениво) ---------
 
 def get_reviews_by_subscription(
     db: Session,
@@ -259,11 +201,9 @@ def get_reviews_by_subscription(
     subscription_id: Optional[int] = None,
     lang: Optional[str] = None,
 ):
-    """
-    Возвращает отзывы пользователей, привязанные к их активной подписке.
-    Требует модель Review (опционально-импортируемая).
-    """
-    if Review is None:
+    try:
+        from common.models.review import Review  # импорт только при вызове
+    except Exception:
         raise HTTPException(status_code=501, detail="Review model not available")
 
     q = (
@@ -272,39 +212,36 @@ def get_reviews_by_subscription(
         .join(Subscription, UserSubscription.subscription_id == Subscription.id)
     )
 
-    # ID приоритетнее
     if subscription_id is not None:
         q = q.filter(Subscription.id == subscription_id)
     elif subscription_name:
-        code = _norm_code(subscription_name)
-        if code:
-            q = q.filter(Subscription.code == code)
-        else:
-            norm = subscription_name.strip().lower()
-            q = q.filter(func.lower(func.btrim(Subscription.name)) == norm)
+        code_or_name = _norm(subscription_name)
+        name_norm = func.replace(func.lower(func.btrim(Subscription.name)), " ", "-")
+        q = q.filter(
+            (func.lower(Subscription.code) == code_or_name) |
+            (name_norm == code_or_name)
+        )
     else:
         raise HTTPException(status_code=400, detail="Provide subscription_id or subscription_name")
 
-    q = _apply_lang_filter(q, lang)
+    if lang:
+        lang_norm = lang.strip().lower()
+        if lang_norm not in _ALLOWED_LANGS:
+            raise HTTPException(status_code=400, detail="lang must be 'uk', 'ru' or 'en'")
+        q = q.filter(func.lower(Subscription.language) == lang_norm)
+
     return q.all()
 
-
-def get_reviews_by_subscription_name(
-    db: Session,
-    subscription_name: str,
-    lang: Optional[str] = None,
-):
+def get_reviews_by_subscription_name(db: Session, subscription_name: str, lang: Optional[str] = None):
     return get_reviews_by_subscription(db, subscription_name=subscription_name, lang=lang)
 
-
-# ---------- Рекомендации (если модель Recommendation есть) ----------
+# --------- recommendations (тоже лениво и опционально) ---------
 
 def create_recommendation(db: Session, data):
-    """
-    Создаёт Recommendation, если модель и схема доступны.
-    Ожидает pydantic-схему RecommendationCreate со стандартным .dict().
-    """
-    if Recommendation is None or RecommendationCreate is None:
+    try:
+        from services.review_service.api.schemas import RecommendationCreate
+        from services.review_service.models.recommendation import Recommendation
+    except Exception:
         raise HTTPException(status_code=501, detail="Recommendation model/schema not available")
 
     if not isinstance(data, RecommendationCreate):

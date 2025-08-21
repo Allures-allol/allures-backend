@@ -1,9 +1,7 @@
 #services/subscription_service/main.py
-# services/subscription_service/main.py
 
 import sys
 import os
-import common.utils.env_loader  # noqa: F401
 
 # Добавление корневого пути (для доступа к общим модулям)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
