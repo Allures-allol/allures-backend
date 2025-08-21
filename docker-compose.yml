@@ -67,9 +67,26 @@ services:
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
-    command: uvicorn services.subscription_service.main:app --host 0.0.0.0 --port 8000
+    command: uvicorn services/subscription_service.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8011:8000"
+    networks:
+      - allures-network
+
+  payment_service:
+    build:
+      context: .
+      dockerfile: services/payment_service/Dockerfile
+    container_name: payment_service
+    restart: unless-stopped
+    env_file:
+      - /home/adminden/.env
+    environment:
+      PYTHONPATH: /app:/app/common
+      TZ: "Europe/Kyiv"
+    command: uvicorn services.payment_service.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8005:8000"
     networks:
       - allures-network
 

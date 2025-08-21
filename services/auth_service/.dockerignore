@@ -1,4 +1,3 @@
-# Исключаем лишнее из контекста Docker
 .git
 .gitignore
 __pycache__/
@@ -11,14 +10,9 @@ build/
 tests/
 logs/
 *.log
-
-# Исключаем тяжелые данные
 dataset/
 mock_static/
-
-# Исключаем IDE/системное
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-

@@ -7,6 +7,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+pip-wheel-metadata/
 
 # ================== Virtual environments ==================
 .venv/
@@ -23,7 +24,7 @@ logs/
 *.sqlite3
 *.db
 htmlcov/
-.coverage
+.coverage*
 .pytest_cache/
 
 # ================== IDE / OS ==================
@@ -36,15 +37,28 @@ Thumbs.db
 .dockerignore
 docker-compose.override.yml
 
+# ================== Node / frontend ==================
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 # ================== Datasets / media ==================
 dataset/
 fashion-dataset/
 mock_static/
 assets/images/
 
-# ================== ML ==================
+# ================== ML / AI models ==================
 *.pt
 *.pth
 *.onnx
 *.h5
 checkpoints/
+
+# ================== Others ==================
+*.bak
+*.swp
+*.swo

@@ -1,0 +1,17 @@
+fastapi==0.115.13
+uvicorn[standard]==0.30.6
+starlette==0.41.2
+pydantic==2.8.2
+pydantic_settings==2.2.1
+anyio==4.4.0
+SQLAlchemy==2.0.31
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+httpx==0.27.2
+# опционально, если нужен JWT/подписи:
+python-jose[cryptography]==3.4.0
+passlib[bcrypt]==1.7.4
+# опционально, если миграции из сервиса:
+alembic==1.15.2
+# если принимаешь multipart:
+python-multipart==0.0.18
