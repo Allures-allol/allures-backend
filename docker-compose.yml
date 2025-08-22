@@ -90,5 +90,20 @@ services:
     networks:
       - allures-network
 
-
+  profile_service:
+    build:
+      context: .
+      dockerfile: services/profile_service/Dockerfile
+    container_name: profile_service
+    restart: unless-stopped
+    env_file:
+      - /home/adminden/.env
+    environment:
+      PYTHONPATH: /app:/app/common
+      TZ: "Europe/Kyiv"
+    command: uvicorn services.profile_service.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8004:8000"
+    networks:
+      - allures-network
 
