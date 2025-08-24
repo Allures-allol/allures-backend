@@ -15,8 +15,10 @@ services:
     command: uvicorn services.auth_service.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8003:8000"
-    networks: [auth-net]
+    networks:
+      - allures-network
 
 networks:
-  backend-net:
-    driver: bridge
+  allures-network:
+    external: true
+

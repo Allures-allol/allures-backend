@@ -1,7 +1,5 @@
 
 
-version: "3.9"
-
 services:
   subscription_service:
     build:
@@ -14,13 +12,15 @@ services:
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
+      # PROD (за gateway): роутер без префикса, root_path включён
+      # DEV (локально): поставь 0, тогда префикс /subscription добавится в include_router
+      SUBSCRIPTION_USE_ROOT_PATH: "1"
     command: uvicorn services.subscription_service.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8011:8000"
     networks:
-      - subscription-net
+      - backend-net
 
 networks:
-  subscription-net:
-    driver: bridge
-
+  backend-net:
+    external: true

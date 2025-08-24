@@ -17,6 +17,8 @@ from services.admin_service.schemas.admin_schemas import (
 )
 from common.models.admin import AdminUser
 from common.models.payment import Payment
+from common.models.user import User
+from common.models.uploads import Upload
 from services.admin_service.utils.security import hash_password, verify_password
 
 

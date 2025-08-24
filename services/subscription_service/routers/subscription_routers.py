@@ -1,5 +1,5 @@
 # services/subscription_service/routers/subscription_routers.py
-from __future__ import annotations  # <= ДОЛЖНО быть первой строкой
+from __future__ import annotations
 
 from typing import List, Optional, Tuple
 
@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from common.db.session import get_db
-from common.models.subscriptions import Subscription  # если у тебя plural, оставь так
+from common.models.subscriptions import Subscription
 from services.subscription_service.utils.security import get_user_id_optional
 from services.subscription_service.crud import subscription_crud
 from services.subscription_service.schemas.subscription_schemas import (
@@ -16,12 +16,12 @@ from services.subscription_service.schemas.subscription_schemas import (
     UserSubscriptionOut,
 )
 
-router = APIRouter()
+# ВАЖНО: добавляем префикс и теги — так Swagger будет честно показывать /subscription/...
+router = APIRouter(tags=["Subscription"])
 
 # ---- helpers ----
 
 _SYNONYM_TO_CODE = {
-    # RU/UK/EN → code
     "базовий": "basic", "базовый": "basic", "basic": "basic",
     "просунутий": "advanced", "продвинутый": "advanced", "advanced": "advanced",
     "преміум": "premium", "премиум": "premium", "premium": "premium",
@@ -59,7 +59,7 @@ def lookup_subscription(
     subscription_id: Optional[int] = Query(None, description="ID подписки"),
     subscription_name: Optional[str] = Query(
         None,
-        description="назва/название/name: Безкоштовна|Бесплатная|Free /  Базовий|Базовый|Basic / Просунутий|Продвинутый|Advanced / Преміум|Премиум|Premium",
+        description="Безкоштовна/Бесплатная/Free, Базовий/Базовый/Basic, Просунутий/Продвинутый/Advanced, Преміум/Премиум/Premium",
     ),
     lang: Optional[str] = Query(None, description="uk|ru|en (опционально)"),
     db: Session = Depends(get_db),
@@ -71,9 +71,8 @@ def lookup_subscription(
         sub = db.query(Subscription).filter(Subscription.id == subscription_id).first()
         if not sub:
             raise HTTPException(status_code=404, detail="Подписка не найдена")
-        if lang:
-            if (sub.language or "").lower() != lang.lower():
-                raise HTTPException(status_code=404, detail="Подписка с таким языком не найдена")
+        if lang and (sub.language or "").lower() != lang.lower():
+            raise HTTPException(status_code=404, detail="Подписка с таким языком не найдена")
         return sub
 
     if subscription_name:
@@ -101,9 +100,7 @@ def start_free_subscription(
 @router.post("/activate-by-code")
 def activate_by_code(
     user_id: int,
-    subscription_name: str = Query(
-        ..., description="basic/advanced/premium/free или их аналоги (UK/RU/EN)"
-    ),
+    subscription_name: str = Query(..., description="basic/advanced/premium/free или аналоги (UK/RU/EN)"),
     lang: Optional[str] = Query(None, description="uk|ru|en (опционально)"),
     db: Session = Depends(get_db),
 ):
@@ -120,7 +117,6 @@ def activate_by_code(
     )
     return {"message": "Подписка активирована", "subscription_id": new_sub.id}
 
-# Оставляем ТОЛЬКО один /active — мягкий (token или query)
 @router.get("/active", response_model=UserSubscriptionOut)
 def get_active_subscription(
     user_id_q: Optional[int] = Query(None, description="временный фоллбек"),
@@ -166,3 +162,17 @@ def stats_active_by_plan(
     if lang and lang.strip().lower() not in _ALLOWED_LANGS:
         raise HTTPException(status_code=400, detail="lang must be 'uk', 'ru' or 'en'")
     return subscription_crud.count_active_by_plan(db, lang=lang)
+
+# 🔹 НОВОЕ! Активировать подписку по платежу (user_id, payment_id)
+@router.post("/activate-subscription")
+def activate_subscription_from_payment(
+    user_id: int = Query(..., description="ID пользователя"),
+    payment_id: int = Query(..., description="ID платежа"),
+    db: Session = Depends(get_db),
+):
+    """
+    Активирует подписку на основании записи в payments.
+    Ожидает, что у платежа заполнен subscription_id (или ваша логика это определяет).
+    """
+    new_sub = subscription_crud.activate_subscription_from_payment(db, user_id=user_id, payment_id=payment_id)
+    return {"message": "Подписка активирована по платежу", "user_subscription_id": new_sub.id}
