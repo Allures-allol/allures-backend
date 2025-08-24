@@ -20,8 +20,8 @@ services:
     depends_on:
       - subscription_service
     networks:
-      - backend-net
+      - allures-network
 
 networks:
-  backend-net:
+  allures-network:
     external: true

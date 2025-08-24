@@ -19,8 +19,8 @@ services:
     ports:
       - "8011:8000"
     networks:
-      - backend-net
+      - allures-network
 
 networks:
-  backend-net:
+  allures-network:
     external: true
