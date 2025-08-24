@@ -29,4 +29,4 @@ COPY services/admin_service /app/services/admin_service
 ENV PYTHONPATH=/app
 
 # 7) Команда запуска
-CMD ["uvicorn", "services.auth_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "services.admin_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
