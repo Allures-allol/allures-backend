@@ -19,6 +19,6 @@ services:
       - allures-network
 
 networks:
-  allures-network:
+  backend-net:
     external: true
 

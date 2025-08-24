@@ -18,5 +18,5 @@ services:
        [product-net]
 
 networks:
-  allures-network:
+  backend-net:
     driver: bridge
