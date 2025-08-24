@@ -1,4 +1,3 @@
-@"
 # normalize line endings
 * text=auto eol=lf
 
@@ -11,7 +10,7 @@
 *.Dockerfile text eol=lf
 Dockerfile text eol=lf
 
-# бинарники
+# binaries
 *.pickle binary
 *.pkl    binary
 *.zip    binary
@@ -19,4 +18,4 @@ Dockerfile text eol=lf
 *.png    binary
 *.jpg    binary
 *.webp   binary
-"@ | Out-File .gitattributes -Encoding ascii
+
