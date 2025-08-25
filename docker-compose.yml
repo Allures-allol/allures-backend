@@ -1,9 +1,6 @@
-
 services:
   auth_service:
-    build:
-      context: .
-      dockerfile: services/auth_service/Dockerfile
+    image: denstep123/auth-service:latest
     container_name: auth_service
     restart: unless-stopped
     env_file: [/home/adminden/.env]
@@ -12,78 +9,64 @@ services:
       TZ: "Europe/Kyiv"
     command: uvicorn services.auth_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8003:8000"]
-    networks: [allures-network]
+    networks: [allures-net]
 
   product_service:
-    build:
-      context: .
-      dockerfile: services/product_service/Dockerfile
+    image: denstep123/product-service:latest
     container_name: product_service
     restart: unless-stopped
     env_file: [/home/adminden/.env]
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
-      # ВНУТРЕННИЙ адрес ревью (по имени контейнера)
       REVIEW_SERVICE_BASE: "http://review_service:8000"
     command: uvicorn services.product_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8000:8000"]
     depends_on: [review_service]
-    networks: [allures-network]
+    networks: [allures-net]
 
   review_service:
-    build:
-      context: .
-      dockerfile: services/review_service/Dockerfile
+    image: denstep123/review-service:latest
     container_name: review_service
     restart: unless-stopped
     env_file: [/home/adminden/.env]
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
-      # ВНУТРИ сети root_path не нужен
       REVIEW_USE_ROOT_PATH: "0"
     command: uvicorn services.review_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8002:8000"]
-    networks: [allures-network]
+    networks: [allures-net]
 
   subscription_service:
-    build:
-      context: .
-      dockerfile: services/subscription_service/Dockerfile
+    image: denstep123/subscription-service:latest
     container_name: subscription_service
     restart: unless-stopped
     env_file: [/home/adminden/.env]
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
-      # ВНУТРИ сети префикс добавляем в include_router → root_path=0
       SUBSCRIPTION_USE_ROOT_PATH: "0"
     command: uvicorn services.subscription_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8011:8000"]
-    networks: [allures-network]
+    networks: [allures-net]
 
   admin_service:
-    build:
-      context: .
-      dockerfile: services/admin_service/Dockerfile
+    image: denstep123/admin-service:latest
     container_name: admin_service
     restart: unless-stopped
     env_file: [/home/adminden/.env]
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
-      # Админ стучится во внутренний subscription
       SUBSCRIPTION_SERVICE_URL: "http://subscription_service:8000"
     command: uvicorn services.admin_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8010:8000"]
     depends_on: [subscription_service]
-    networks: [allures-network]
+    networks: [allures-net]
 
   profile_service:
-    build:
-      context: .
-      dockerfile: services/profile_service/Dockerfile
+    image: denstep123/profile-service:latest
     container_name: profile_service
     restart: unless-stopped
     env_file: [/home/adminden/.env]
@@ -92,12 +75,10 @@ services:
       TZ: "Europe/Kyiv"
     command: uvicorn services.profile_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8004:8000"]
-    networks: [allures-network]
+    networks: [allures-net]
 
   payment_service:
-    build:
-      context: .
-      dockerfile: services/payment_service/Dockerfile
+    image: denstep123/payment-service:latest
     container_name: payment_service
     restart: unless-stopped
     env_file: [/home/adminden/.env]
@@ -106,7 +87,7 @@ services:
       TZ: "Europe/Kyiv"
     command: uvicorn services.payment_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8005:8000"]
-    networks: [allures-network]
+    networks: [allures-net]
 
   # опционально:
   # sales_service:    → 8001:8000
@@ -114,5 +95,5 @@ services:
   # dashboard_service:→ 8007:8000
 
 networks:
-  allures-network:
+  allures-net:
     external: true
