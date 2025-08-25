@@ -6,6 +6,7 @@ from typing import Optional
 class UserCreate(BaseModel):
     login: str = Field(..., example="user@example.com")
     password: str = Field(..., example="yourStrongPassword123")
+    email: Optional[str] = None
 
 class UserOut(BaseModel):
     id: int

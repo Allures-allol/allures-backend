@@ -77,4 +77,4 @@ def read_root():
     return {"message": "Authorization Service is running"}
 
 # --- Запуск через uvicorn ---
-# uvicorn services.auth_service.main:app --host 0.0.0.0 --port 8003
+# uvicorn services.auth_service.main:app --reload --port 8003
