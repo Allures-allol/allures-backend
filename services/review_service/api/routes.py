@@ -25,6 +25,26 @@ from common.models.subscriptions import Subscription, UserSubscription
 
 router = APIRouter()
 
+# нормализация названий подписок и языков
+_SYNONYM_TO_CODE = {
+    "базовий": "basic", "базовый": "basic", "basic": "basic",
+    "просунутий": "advanced", "продвинутый": "advanced", "advanced": "advanced",
+    "преміум": "premium", "премиум": "premium", "premium": "premium",
+    "безкоштовна": "free", "бесплатная": "free", "free": "free",
+}
+_ALLOWED_LANGS = {"ru", "uk", "en"}
+
+def _norm_code_or_name(value: str | None) -> str | None:
+    if not value:
+        return None
+    return "-".join(value.strip().lower().split())
+
+def _normalize_code_from_name(subscription_name: str | None) -> str | None:
+    if not subscription_name:
+        return None
+    norm = subscription_name.strip().lower()
+    return _SYNONYM_TO_CODE.get(norm) or _norm_code_or_name(subscription_name)
+
 # === REVIEWS ===
 @router.post("/", response_model=ReviewOut)
 def add_review(review: ReviewCreate, db: Session = Depends(get_db)):
@@ -48,10 +68,15 @@ def get_reviews_by_user(user_id: int, db: Session = Depends(get_db)):
 def reviews_by_subscription(
     subscription_name: Optional[str] = Query(
         None,
-        description="Имя/назва/name: Базовий|Базовый|basic / Просунутий|Продвинутый|advanced / Преміум|Премиум|premium"
+        description=(
+            "Безкоштовна/Бесплатная/Free, "
+            "Базовий/Базовый/Basic, "
+            "Просунутий/Продвинутый/Advanced, "
+            "Преміум/Премиум/Premium"
+        ),
     ),
-    lang: Optional[str] = Query(None, description="Фильтр по языку ('ru'|'uk'|'en'), опционально"),
-    subscription_id: Optional[int] = Query(None, description="ID підписки"),
+    lang: Optional[str] = Query(None, description="uk|ru|en (опционально)"),
+    subscription_id: Optional[int] = Query(None, description="ID подписки"),
     db: Session = Depends(get_db),
 ):
     q = (
@@ -62,36 +87,33 @@ def reviews_by_subscription(
 
     if subscription_id is not None:
         q = q.filter(Subscription.id == subscription_id)
-
     elif subscription_name:
-        norm = subscription_name.strip().lower()
-        syn_to_code = {
-            "базовий": "basic", "базовый": "basic", "basic": "basic",
-            "просунутий": "advanced", "продвинутый": "advanced", "advanced": "advanced",
-            "преміум": "premium", "премиум": "premium", "premium": "premium",
-        }
-        code = syn_to_code.get(norm)
-        if code:
-            q = q.filter(Subscription.code == code)
-        else:
-            # точное совпадение по name (в нижнем регистре, без пробелов по краям)
-            q = q.filter(func.lower(func.btrim(Subscription.name)) == norm)
+        code_or_name = _normalize_code_from_name(subscription_name)
+        if not code_or_name:
+            raise HTTPException(status_code=400, detail="Некорректное имя/код подписки")
+        # матчим и по code, и по нормализованному name
+        q = q.filter(
+            (func.lower(func.btrim(Subscription.code)) == code_or_name) |
+            (func.lower(func.btrim(Subscription.name)) == code_or_name)
+        )
     else:
         raise HTTPException(status_code=400, detail="Provide subscription_id or subscription_name")
 
     if lang:
         lang_norm = lang.strip().lower()
-        allowed = {"ru", "uk", "en"}
-        if lang_norm not in allowed:
-            raise HTTPException(status_code=400, detail="lang must be 'ru', 'uk' or 'en'")
-
-        # поддерживаем разные схемы: lang_code ИЛИ lang
-        lang_attr = getattr(Subscription, "lang_code", None) or getattr(Subscription, "lang", None)
-        if lang_attr is not None:
-            q = q.filter(func.lower(lang_attr) == lang_norm)
-        # если поля языка нет — просто не фильтруем, чтобы не было 500
+        if lang_norm not in _ALLOWED_LANGS:
+            raise HTTPException(status_code=400, detail="lang must be 'uk', 'ru' or 'en'")
+        # поддержка разных колонок языка
+        lang_col = (
+            getattr(Subscription, "language", None)
+            or getattr(Subscription, "lang_code", None)
+            or getattr(Subscription, "lang", None)
+        )
+        if lang_col is not None:
+            q = q.filter(func.lower(lang_col) == lang_norm)
 
     return q.order_by(Review.created_at.desc()).all()
+
 
 # === RECOMMENDATIONS ===
 @router.get("/recommendations/", response_model=List[RecommendationOut])

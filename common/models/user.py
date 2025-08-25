@@ -8,6 +8,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+    is_email_confirmed = Column(Boolean, nullable=False, default=False)
     login = Column(String(255), unique=True, nullable=False)
     password = Column(Text, nullable=False)  # TEXT в БД
     full_name = Column(String(100))

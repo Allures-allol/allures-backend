@@ -25,10 +25,12 @@ from services.product_service.api.routes import router as product_router
 # Загрузка .env переменных
 load_dotenv()
 
+USE_ROOT_PATH = os.getenv("PRODUCT_USE_ROOT_PATH", "0") == "1"
+
 app = FastAPI(
     title="Product Service",
     # если на проде прокси монтирует /product как root_path — оставь:
-    root_path="/product",
+    root_path="/product" if USE_ROOT_PATH else "",
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
@@ -48,12 +50,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# важно: роутер с префиксом
+from services.product_service.api.routes import router as product_router
+
+if USE_ROOT_PATH:
+    app.include_router(product_router, tags=["products"])
+else:
+    app.include_router(product_router, prefix="/product", tags=["products"])
 
 print(" MAINDB_URL из settings:", settings.MAINDB_URL)
 
-# важно: роутер с префиксом
-from services.product_service.api.routes import router as product_router
-app.include_router(product_router, prefix="/products", tags=["Products"])
 
 @app.get("/health")
 def health():

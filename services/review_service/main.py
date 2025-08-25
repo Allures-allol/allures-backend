@@ -26,9 +26,11 @@ from dotenv import load_dotenv
 # Загрузка .env
 load_dotenv()
 
+USE_ROOT_PATH = os.getenv("REVIEW_USE_ROOT_PATH", "0") == "1"
+
 app = FastAPI(
     title="Review Service",
-    root_path="/review",        # ВНЕШНИЙ префикс
+    root_path="/review" if USE_ROOT_PATH else "",
     docs_url="/docs",            # снаружи: /reviews/docs
     redoc_url="/redoc",
     openapi_url="/openapi.json",
@@ -48,8 +50,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# РОУТЕР БЕЗ prefix — root_path уже добавит /reviews снаружи
-app.include_router(reviews_router, tags=["Reviews"])
+# ВАЖНО: без доп. prefix — его уже даёт router ("/reviews")
+# роутер всегда под /reviews
+app.include_router(reviews_router, prefix="/reviews", tags=["Reviews"])
 
 @app.on_event("startup")
 def on_startup():

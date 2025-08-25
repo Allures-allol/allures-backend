@@ -1,12 +1,27 @@
-.venv/
+
 __pycache__/
-*.pyc
-*.log
+*.py[cod]
+*.pyo
+*.pyd
+
+# IDE
+.venv/
+venv/
 .env
-../../.env.prod
-.git
-.gitignore
-node_modules/
-tests/
+.env.*
+.vscode/
+.idea/
+
+# сборки / мусор
 dist/
 build/
+*.log
+logs/
+*.swp
+*.bak
+node_modules/
+
+# не игнорируем common! (он нужен внутри образов)
+
+.DS_Store
+Thumbs.db

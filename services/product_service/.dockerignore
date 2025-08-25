@@ -1,12 +1,33 @@
-.venv/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
 *.log
+
+# Venv & env
+.venv/
+venv/
 .env
-../../.env.prod
+.env.*
+
+# Git / IDE
 .git
 .gitignore
+.vscode/
+.idea/
+
+# Node
 node_modules/
-tests/
+yarn-error.log
+
+# Build artefacts
 dist/
 build/
+*.egg-info/
+
+dataset/
+mock_static/
+
+.DS_Store
+Thumbs.db

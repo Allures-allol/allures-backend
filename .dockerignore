@@ -26,10 +26,3 @@ dist/
 build/
 *.egg-info/
 
-dataset/
-mock_static/
-
-.DS_Store
-Thumbs.db
-
-

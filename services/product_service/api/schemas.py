@@ -21,19 +21,17 @@ class Category(BaseModel):
         from_attributes = True
 
 class ProductCreateMinimal(BaseModel):
+    company_id: int
     name: str
     price: float
-    description: Optional[str] = ""
+    description: str = ""
     image: Optional[str] = None
-
-    # достаточно одного из двух:
     category_id: Optional[int] = None
     category_name: Optional[str] = None
-
     subcategory: Optional[str] = None
     product_type: Optional[str] = "physical"
 
-# === Категория товара ===
+# === Продукт ===
 class ProductCreate(BaseModel):
     name: str
     description: str
@@ -50,17 +48,6 @@ class ProductCreate(BaseModel):
     subcategory: Optional[str] = None
     product_type: Optional[str] = "physical"
 
-class Category(BaseModel):
-    category_id: int
-    category_name: str
-    description: Optional[str] = None
-    subcategory: Optional[str] = None
-    product_type: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-# === Продукт ===
 class ProductBase(BaseModel):
     name: str
     description: str
@@ -76,9 +63,6 @@ class ProductBase(BaseModel):
     is_hit: Optional[bool] = False
     is_discount: Optional[bool] = False
     is_new: Optional[bool] = False
-
-class ProductCreate(ProductBase):
-    pass
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -98,6 +82,7 @@ class ProductUpdate(BaseModel):
 
 class ProductOut(BaseModel):
     id: int
+    company_id: int
     name: str
     description: str
     price: float
@@ -118,8 +103,11 @@ class ProductOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    company_id: int
+
     class Config:
         from_attributes = True  # для .from_orm() / возврата из ORM
+
 
 class InventoryCreate(BaseModel):
     product_id: int
