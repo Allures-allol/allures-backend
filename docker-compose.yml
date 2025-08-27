@@ -1,3 +1,5 @@
+
+
 services:
   auth_service:
     image: denstep123/auth-service:latest
@@ -44,6 +46,8 @@ services:
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
+      # PROD: префикс /subscription задаёт gateway → в приложении включаем root_path
+      SUBSCRIPTION_USE_ROOT_PATH: "1"
     command: uvicorn services.subscription_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8011:8000"]
     networks: [allures-net]
@@ -56,6 +60,8 @@ services:
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
+      # внутренняя ссылка на сервис подписок в докер-сети
+      SUBSCRIPTION_SERVICE_URL: "http://subscription_service:8000"
     command: uvicorn services.admin_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8010:8000"]
     depends_on: [subscription_service]
@@ -85,11 +91,12 @@ services:
     ports: ["8005:8000"]
     networks: [allures-net]
 
-  # опционально:
-  # sales_service:    → 8001:8000
-  # discount_service: → 8006:8000
-  # dashboard_service:→ 8007:8000
+  # опционально позже:
+  # sales_service:    → ports ["8001:8000"]
+  # discount_service: → ports ["8006:8000"]
+  # dashboard_service:→ ports ["8007:8000"]
 
 networks:
   allures-net:
     external: true
+
