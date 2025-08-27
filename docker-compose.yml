@@ -33,7 +33,6 @@ services:
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
-      REVIEW_USE_ROOT_PATH: "0"
     command: uvicorn services.review_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8002:8000"]
     networks: [allures-net]
@@ -46,7 +45,6 @@ services:
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
-      SUBSCRIPTION_USE_ROOT_PATH: "0"
     command: uvicorn services.subscription_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8011:8000"]
     networks: [allures-net]
