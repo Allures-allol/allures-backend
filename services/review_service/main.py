@@ -52,7 +52,10 @@ app.add_middleware(
 
 # ВАЖНО: без доп. prefix — его уже даёт router ("/reviews")
 # роутер всегда под /reviews
-app.include_router(reviews_router, prefix="/reviews", tags=["Reviews"])
+if USE_ROOT_PATH:
+    app.include_router(reviews_router, tags=["Reviews"])
+else:
+    app.include_router(reviews_router, prefix="/reviews", tags=["Reviews"])
 
 @app.on_event("startup")
 def on_startup():
