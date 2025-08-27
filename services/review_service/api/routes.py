@@ -1,14 +1,15 @@
 # services/review_service/api/routes.py
-from fastapi import APIRouter, Depends, Query, HTTPException
+from typing import Optional, List
+import unicodedata
+from fastapi import APIRouter, Query, HTTPException, Depends
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from typing import List, Optional
-
 from common.db.session import get_db
 from services.review_service.api import controller
 from services.review_service.logic.recommendation import (
     Product, recommend_products, save_recommendations_to_db
 )
+from common.models.subscriptions import Subscription, UserSubscription
 from services.review_service.models.review import Review
 from services.review_service.models.recommendation import Recommendation
 from services.review_service.api.schemas import (
@@ -18,28 +19,75 @@ from services.review_service.api.schemas import (
 )
 from services.review_service.api.crud import (
     create_recommendation, update_recommendation,
-    delete_recommendation, get_recommendations_filtered
+    delete_recommendation, get_recommendations_filtered,
+    get_reviews_by_subscription as crud_get_reviews_by_subscription
 )
+
 from common.models.products import Product as ProductModel
-from common.models.subscriptions import Subscription, UserSubscription
+# Локальная схема для подписки, чтобы не тянуть импорт из subscription_service
+try:
+    # Pydantic v2
+    from pydantic import BaseModel, ConfigDict
+    class SubscriptionInfo(BaseModel):
+        id: int
+        code: str
+        language: str
+        name: str
+        price: int
+        duration_days: int
+        product_limit: int
+        promo_balance: int
+        support_level: Optional[str] = None
+        stats_access: bool
+        description: Optional[str] = None
+
+        model_config = ConfigDict(from_attributes=True)
+except Exception:
+    # Pydantic v1 fallback
+    from pydantic import BaseModel
+    class SubscriptionInfo(BaseModel):
+        id: int
+        code: str
+        language: str
+        name: str
+        price: int
+        duration_days: int
+        product_limit: int
+        promo_balance: int
+        support_level: Optional[str] = None
+        stats_access: bool
+        description: Optional[str] = None
+
+        class Config:
+            orm_mode = True
+
 
 router = APIRouter()
 
-# нормализация названий подписок и языков
+# ---------- helpers (нормализация) ----------
+
 _SYNONYM_TO_CODE = {
     "базовий": "basic", "базовый": "basic", "basic": "basic",
     "просунутий": "advanced", "продвинутый": "advanced", "advanced": "advanced",
     "преміум": "premium", "премиум": "premium", "premium": "premium",
     "безкоштовна": "free", "бесплатная": "free", "free": "free",
 }
-_ALLOWED_LANGS = {"ru", "uk", "en"}
+_ALLOWED_LANGS = {"uk", "ru", "en"}
 
-def _norm_code_or_name(value: str | None) -> str | None:
+
+def _norm(s: Optional[str]) -> Optional[str]:
+    if s is None:
+        return None
+    return unicodedata.normalize("NFKC", s).strip().lower()
+
+
+def _norm_code_or_name(value: Optional[str]) -> Optional[str]:
     if not value:
         return None
     return "-".join(value.strip().lower().split())
 
-def _normalize_code_from_name(subscription_name: str | None) -> str | None:
+
+def _normalize_code_from_name(subscription_name: Optional[str]) -> Optional[str]:
     if not subscription_name:
         return None
     norm = subscription_name.strip().lower()
@@ -63,56 +111,79 @@ def get_all_reviews(db: Session = Depends(get_db)):
 def get_reviews_by_user(user_id: int, db: Session = Depends(get_db)):
     return db.query(Review).filter(Review.user_id == user_id).all()
 
-
 @router.get("/by-subscription", response_model=List[ReviewOut])
 def reviews_by_subscription(
+    subscription_id: Optional[int] = Query(None, description="Точный ID подписки"),
+    subscription_name: Optional[str] = Query(
+        None,
+        description="Free/Basic/Advanced/Premium или синонимы (укр/рус). Приоритет у ID."
+    ),
+    lang: Optional[str] = Query(None, description="ru|uk|en (опционально)"),
+    db: Session = Depends(get_db),
+):
+    if subscription_id is None and not subscription_name:
+        raise HTTPException(status_code=400, detail="Provide subscription_id or subscription_name")
+
+    return crud_get_reviews_by_subscription(
+        db=db,
+        subscription_name=subscription_name,
+        subscription_id=subscription_id,
+        lang=lang,
+    )
+
+
+# --- lookup подписки прямо из review-сервиса (аналогично subscription_service/lookup) ---
+
+@router.get("/subscriptions/lookup", response_model=SubscriptionInfo)
+def lookup_subscription_via_review(
+    subscription_id: Optional[int] = Query(None, description="ID подписки"),
     subscription_name: Optional[str] = Query(
         None,
         description=(
-            "Безкоштовна/Бесплатная/Free, "
-            "Базовий/Базовый/Basic, "
-            "Просунутий/Продвинутый/Advanced, "
-            "Преміум/Премиум/Premium"
+            "Безкоштовна/Бесплатная/Free, Базовий/Базовый/Basic, "
+            "Просунутий/Продвинутый/Advanced, Преміум/Премиум/Premium"
         ),
     ),
     lang: Optional[str] = Query(None, description="uk|ru|en (опционально)"),
-    subscription_id: Optional[int] = Query(None, description="ID подписки"),
     db: Session = Depends(get_db),
 ):
-    q = (
-        db.query(Review)
-        .join(UserSubscription, Review.user_id == UserSubscription.user_id)
-        .join(Subscription, UserSubscription.subscription_id == Subscription.id)
-    )
+    if lang and lang.strip().lower() not in _ALLOWED_LANGS:
+        raise HTTPException(status_code=400, detail="lang must be 'uk', 'ru' or 'en'")
 
     if subscription_id is not None:
-        q = q.filter(Subscription.id == subscription_id)
-    elif subscription_name:
-        code_or_name = _normalize_code_from_name(subscription_name)
-        if not code_or_name:
-            raise HTTPException(status_code=400, detail="Некорректное имя/код подписки")
-        # матчим и по code, и по нормализованному name
-        q = q.filter(
-            (func.lower(func.btrim(Subscription.code)) == code_or_name) |
-            (func.lower(func.btrim(Subscription.name)) == code_or_name)
-        )
-    else:
-        raise HTTPException(status_code=400, detail="Provide subscription_id or subscription_name")
+        sub = db.query(Subscription).filter(Subscription.id == subscription_id).first()
+        if not sub:
+            raise HTTPException(status_code=404, detail="Подписка не найдена")
+        if lang and (getattr(sub, "language", "") or "").lower() != lang.lower():
+            raise HTTPException(status_code=404, detail="Подписка с таким языком не найдена")
+        return sub
 
-    if lang:
-        lang_norm = lang.strip().lower()
-        if lang_norm not in _ALLOWED_LANGS:
-            raise HTTPException(status_code=400, detail="lang must be 'uk', 'ru' or 'en'")
-        # поддержка разных колонок языка
-        lang_col = (
-            getattr(Subscription, "language", None)
-            or getattr(Subscription, "lang_code", None)
-            or getattr(Subscription, "lang", None)
-        )
-        if lang_col is not None:
-            q = q.filter(func.lower(lang_col) == lang_norm)
+    if subscription_name:
+        norm = subscription_name.strip().lower()
+        code_or_name = _SYNONYM_TO_CODE.get(norm) or _norm_code_or_name(subscription_name)
 
-    return q.order_by(Review.created_at.desc()).all()
+        if code_or_name == "free":
+            sub = db.query(Subscription).filter(Subscription.id == 1).first()
+        else:
+            sub = (
+                db.query(Subscription)
+                .filter(func.lower(func.btrim(Subscription.code)) == code_or_name)
+                .first()
+            )
+            if not sub:
+                sub = (
+                    db.query(Subscription)
+                    .filter(func.lower(func.btrim(Subscription.name)) == norm)
+                    .first()
+                )
+
+        if not sub:
+            raise HTTPException(status_code=404, detail="Подписка не найдена")
+        if lang and (getattr(sub, "language", "") or "").lower() != lang.lower():
+            raise HTTPException(status_code=404, detail="Подписка с таким языком не найдена")
+        return sub
+
+    raise HTTPException(status_code=400, detail="Provide subscription_id or subscription_name")
 
 
 # === RECOMMENDATIONS ===

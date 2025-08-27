@@ -1,5 +1,4 @@
 # services/profile_service/main.py
-
 import sys
 import os
 from dotenv import load_dotenv
@@ -14,7 +13,7 @@ from sqlalchemy import text
 from common.config.settings import settings
 from common.db.session import get_db
 
-# ⬇️ подключаем роутеры
+#  подключаем роутеры
 from services.profile_service.routers.company import router as company_router
 from services.profile_service.routers.schedule import router as schedule_router
 
@@ -42,7 +41,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ⬇️ подключаем БЕЗ конфликтов (внутренние prefix работают вместе с root_path)
+#  подключаем БЕЗ конфликтов (внутренние prefix работают вместе с root_path)
 app.include_router(company_router, prefix="/companies", tags=["Companies"])
 app.include_router(schedule_router, prefix="/schedules", tags=["Schedules"])
 

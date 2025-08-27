@@ -14,8 +14,9 @@ from common.db.session import get_db
 from common.config.settings import settings
 from common.models.products import Product as ProductModel
 from common.models.categories import Category as CategoryModel
-from services.product_service.api.routes import router as product_router
 
+# важно: роутер с префиксом
+from services.product_service.api.routes import router as product_router
 # from services.product_service.api import image_classifier_router
 # from services.review_service.api.routes import router as review_router
 
@@ -50,8 +51,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# важно: роутер с префиксом
-from services.product_service.api.routes import router as product_router
+
 
 if USE_ROOT_PATH:
     app.include_router(product_router, tags=["products"])

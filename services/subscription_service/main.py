@@ -59,9 +59,9 @@ def startup_event():
     db = next(db_gen)
     try:
         db.execute(text("SELECT 1"))
-        print("✅ PostgreSQL подключение успешно (Subscription Service)")
+        print(" PostgreSQL подключение успешно (Subscription Service)")
     except Exception as e:
-        print(f"❌ Ошибка подключения к PostgreSQL: {e}")
+        print(f" Ошибка подключения к PostgreSQL: {e}")
     finally:
         db.close()
 
@@ -70,4 +70,3 @@ def read_root():
     return {"message": "Subscription Service is running"}
 
 # uvicorn services.subscription_service.main:app --reload --port 8011
-

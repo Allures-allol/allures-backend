@@ -1,29 +1,42 @@
 # services/review_service/api/crud.py
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
-
+import unicodedata
 from services.review_service.models.review import Review
 from services.review_service.models.recommendation import Recommendation
 from services.review_service.api.schemas import ReviewCreate, RecommendationCreate
 from common.models.subscriptions import Subscription, UserSubscription
 
-# ---- helpers ----
-_SYNONYMS_TO_CODE = {
-    # basic
-    "базовый": "basic", "базовий": "basic", "basic": "basic",
-    # advanced
-    "продвинутый": "advanced", "просунутий": "advanced", "advanced": "advanced",
-    # premium
-    "премиум": "premium", "преміум": "premium", "premium": "premium",
+_SYNONYM_TO_CODE = {
+    "базовий": "basic", "базовый": "basic", "basic": "basic",
+    "просунутий": "advanced", "продвинутый": "advanced", "advanced": "advanced",
+    "преміум": "premium", "премиум": "premium", "premium": "premium",
+    "безкоштовна": "free", "бесплатная": "free", "free": "free",
 }
 
-def _norm_code(name_or_code: str) -> Optional[str]:
-    if not name_or_code:
+_ALLOWED_LANGS = {"uk", "ru", "en"}
+
+
+def _norm(s: Optional[str]) -> Optional[str]:
+    if s is None:
         return None
-    return _SYNONYMS_TO_CODE.get(name_or_code.strip().lower())
+    return unicodedata.normalize("NFKC", s).strip().lower()
+
+
+def _norm_code_or_name(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    return "-".join(value.strip().lower().split())
+
+
+def _normalize_code_from_name(subscription_name: Optional[str]) -> Optional[str]:
+    if not subscription_name:
+        return None
+    norm = subscription_name.strip().lower()
+    return _SYNONYM_TO_CODE.get(norm) or _norm_code_or_name(subscription_name)
 
 # ---------- Reviews ----------
 def create_review(db: Session, review: ReviewCreate) -> Review:
@@ -56,46 +69,82 @@ def get_reviews_by_subscription(
     subscription_id: Optional[int] = None,
     lang: Optional[str] = None,
 ) -> List[Review]:
+    """
+    Строгий фильтр по конкретной подписке.
+    Free = id 1. Для Free берём:
+      - записи, где subscription_id == 1
+      - ИЛИ у пользователя нет записи в user_subscriptions (NULL)
+        (если НЕ нужно включать пользователей без подписки — см. комментарий ниже)
+    Остальные планы — точный матч по id или code.
+    """
+
+    # Определяем, запрошена ли Free
+    is_free = False
+    if subscription_id == 1:
+        is_free = True
+    elif subscription_name:
+        code = _normalize_code_from_name(subscription_name)
+        if code == "free":
+            is_free = True
+
+    if is_free:
+        # LEFT OUTER JOIN, чтобы захватить пользователей без записи о подписке
+        q = (
+            db.query(Review)
+            .outerjoin(UserSubscription, Review.user_id == UserSubscription.user_id)
+            .outerjoin(Subscription, UserSubscription.subscription_id == Subscription.id)
+            .filter(
+                or_(
+                    Subscription.id == 1,
+                    UserSubscription.subscription_id.is_(None)  # <-- УБЕРИ эту строку, если нужно только id=1
+                )
+            )
+        )
+
+        # Язык: применяем только к строкам, где подписка реально есть (id=1); для NULL — не ограничиваем
+        if lang:
+            lang_norm = lang.strip().lower()
+            if lang_norm not in _ALLOWED_LANGS:
+                raise HTTPException(status_code=400, detail="lang must be 'ru', 'uk' or 'en'")
+
+            lang_col = getattr(Subscription, "language", None) or getattr(Subscription, "lang", None)
+            if lang_col is not None:
+                q = q.filter(
+                    or_(
+                        UserSubscription.subscription_id.is_(None),
+                        func.lower(lang_col) == lang_norm
+                    )
+                )
+
+        return q.order_by(Review.created_at.desc()).all()
+
+    # НЕ Free: строгий INNER JOIN + точный матч
     q = (
         db.query(Review)
         .join(UserSubscription, Review.user_id == UserSubscription.user_id)
         .join(Subscription, UserSubscription.subscription_id == Subscription.id)
     )
 
-    # ID приоритетнее
     if subscription_id is not None:
         q = q.filter(Subscription.id == subscription_id)
     elif subscription_name:
-        code = _norm_code(subscription_name)
-        if code:
-            q = q.filter(Subscription.code == code)
-        else:
-            # fallback: точное совпадение по name (нижний регистр+trim)
-            norm = subscription_name.strip().lower()
-            q = q.filter(func.lower(func.btrim(Subscription.name)) == norm)
+        code = _normalize_code_from_name(subscription_name)
+        if not code:
+            raise HTTPException(status_code=400, detail="Некорректное имя/код подписки")
+        q = q.filter(func.lower(func.btrim(Subscription.code)) == code)
     else:
         raise HTTPException(status_code=400, detail="Provide subscription_id or subscription_name")
 
-    # Язык: фильтруем только если такое поле вообще существует в модели
     if lang:
         lang_norm = lang.strip().lower()
-        allowed = {"ru", "uk", "en"}
-        if lang_norm not in allowed:
+        if lang_norm not in _ALLOWED_LANGS:
             raise HTTPException(status_code=400, detail="lang must be 'ru', 'uk' or 'en'")
+        lang_col = getattr(Subscription, "language", None) or getattr(Subscription, "lang", None)
+        if lang_col is not None:
+            q = q.filter(func.lower(lang_col) == lang_norm)
 
-        lang_attr = getattr(Subscription, "lang_code", None) or getattr(Subscription, "lang", None)
-        if lang_attr is not None:
-            q = q.filter(func.lower(lang_attr) == lang_norm)
+    return q.order_by(Review.created_at.desc()).all()
 
-    return q.all()
-
-# бэк-компат для старого импорта
-def get_reviews_by_subscription_name(
-    db: Session,
-    subscription_name: str,
-    lang: Optional[str] = None
-) -> List[Review]:
-    return get_reviews_by_subscription(db, subscription_name=subscription_name, lang=lang)
 
 # ---------- Recommendations ----------
 def create_recommendation(db: Session, data: RecommendationCreate) -> Recommendation:

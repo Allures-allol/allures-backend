@@ -8,6 +8,3 @@ class Company(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String)
-
-    # backref на продукты (если одна БД)
-    products = relationship("Product", back_populates="company")

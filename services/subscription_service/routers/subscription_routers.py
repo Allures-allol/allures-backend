@@ -16,8 +16,8 @@ from services.subscription_service.schemas.subscription_schemas import (
     UserSubscriptionOut,
 )
 
-# ВАЖНО: добавляем префикс и теги — так Swagger будет честно показывать /subscription/...
-router = APIRouter(tags=["Subscription"])
+# ВАЖНО: теги — так Swagger будет честно показывать /subscription/...
+router = APIRouter()
 
 # ---- helpers ----
 
@@ -28,7 +28,7 @@ _SYNONYM_TO_CODE = {
     "безкоштовна": "free", "бесплатная": "free", "free": "free",
 }
 
-_ALLOWED_LANGS = {"ru", "uk", "en"}
+_ALLOWED_LANGS = {"uk", "ru", "en"}
 
 def _norm_code_or_name(value: Optional[str]) -> Optional[str]:
     if not value:

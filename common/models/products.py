@@ -37,6 +37,3 @@ class Product(Base):
     # связь с Category ок — это внутри домена продуктов
     category = relationship("Category", back_populates="products")
 
-    # УДАЛЕНО: связь с Company (ломала маппинг)
-    # company = relationship("Company", back_populates="products")
-
