@@ -60,6 +60,7 @@ services:
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
+      ADMIN_USE_ROOT_PATH: "1"        # ← ВКЛЮЧАЕМ root_path=/admin
       # внутренняя ссылка на сервис подписок в докер-сети
       SUBSCRIPTION_SERVICE_URL: "http://subscription_service:8000"
     command: uvicorn services.admin_service.main:app --host 0.0.0.0 --port 8000

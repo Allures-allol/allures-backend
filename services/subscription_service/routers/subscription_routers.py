@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from common.db.session import get_db
-from common.models.subscriptions import Subscription
+from common.models.subscriptions import Subscription, UserSubscription
 from services.subscription_service.utils.security import get_user_id_optional
 from services.subscription_service.crud import subscription_crud
 from services.subscription_service.schemas.subscription_schemas import (
@@ -22,10 +22,10 @@ router = APIRouter()
 # ---- helpers ----
 
 _SYNONYM_TO_CODE = {
+    "безкоштовна": "free", "бесплатная": "free", "free": "free",
     "базовий": "basic", "базовый": "basic", "basic": "basic",
     "просунутий": "advanced", "продвинутый": "advanced", "advanced": "advanced",
-    "преміум": "premium", "премиум": "premium", "premium": "premium",
-    "безкоштовна": "free", "бесплатная": "free", "free": "free",
+    "преміум": "premium", "премиум": "premium", "premium": "premium"
 }
 
 _ALLOWED_LANGS = {"uk", "ru", "en"}
@@ -126,7 +126,26 @@ def get_active_subscription(
     user_id = user_id_tok or user_id_q
     if not user_id:
         raise HTTPException(status_code=401, detail="Auth required")
-    return subscription_crud.get_user_active_subscription(db, user_id)
+
+    us = subscription_crud.get_user_active_subscription(db, user_id)  # 404 если нет активной
+    sub = db.query(Subscription).filter(Subscription.id == us.subscription_id).first()
+    if not sub:
+        raise HTTPException(status_code=500, detail="Plan not found for active subscription")
+
+    return {
+        "id": us.id,
+        "user_id": us.user_id,
+        "subscription_id": us.subscription_id,
+        "start_date": us.start_date,
+        "end_date": us.end_date,
+        "is_active": us.is_active,
+        "auto_renew": us.auto_renew,
+        "payment_id": us.payment_id,
+        # добавленные поля
+        "subscription_code": sub.code,
+        "subscription_name": sub.name,
+        "language": sub.language,
+    }
 
 @router.put("/auto-renew")
 def toggle_auto_renew(

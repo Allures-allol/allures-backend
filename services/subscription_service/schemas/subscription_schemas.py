@@ -38,6 +38,11 @@ class UserSubscriptionOut(BaseModel):
     end_date: datetime
     is_active: bool
     auto_renew: bool
-    payment_id: Optional[int] = None
+    payment_id: int | None = None
+
+    # + инфо о плане
+    subscription_code: str
+    subscription_name: str
+    language: str
 
     model_config = ConfigDict(from_attributes=True)

@@ -1,4 +1,4 @@
-# common/models/subscription.py
+# common/models/subscriptions.py
 from sqlalchemy import (
     Column, Integer, String, DateTime, Boolean, ForeignKey,
     UniqueConstraint, Index, Text
