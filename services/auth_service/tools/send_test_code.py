@@ -2,7 +2,7 @@
 import sys, secrets, smtplib
 from email.message import EmailMessage
 
-SMTP_HOST = "127.0.0.1"
+SMTP_HOST = "mailpit"
 SMTP_PORT = 1025
 MAIL_FROM = "no-reply@allures.local"
 MAIL_FROM_NAME = "Allures"
