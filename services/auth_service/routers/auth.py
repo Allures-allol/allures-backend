@@ -21,11 +21,11 @@ from services.auth_service.schemas.user import (
 router = APIRouter(prefix="", tags=["auth-simple"])
 
 # ---------- Mailpit / config ----------
-SMTP_HOST = os.getenv("SMTP_HOST", "127.0.0.1")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "1025"))
-MAIL_FROM = os.getenv("MAIL_FROM", "no-reply@allures.local")
-MAIL_FROM_NAME = os.getenv("MAIL_FROM_NAME", "Allures")
-EMAIL_CODE_TTL_MIN = int(os.getenv("EMAIL_CODE_TTL_MIN", "10"))
+SMTP_HOST = os.getenv("SMTP_HOST")
+SMTP_PORT = int(os.getenv("SMTP_PORT"))
+MAIL_FROM = os.getenv("MAIL_FROM")
+MAIL_FROM_NAME = os.getenv("MAIL_FROM_NAME")
+EMAIL_CODE_TTL_MIN = int(os.getenv("EMAIL_CODE_TTL_MIN"))
 
 def _now_utc() -> datetime:
     return datetime.now(tz=timezone.utc)
