@@ -103,6 +103,7 @@ services:
     restart: unless-stopped
     environment:
       MP_MAX_MESSAGES: "5000"
+      MAILPIT_BIND: "0.0.0.0"
       # MP_DATA_FILE: "/data/mailpit.db"   # хранить письма между рестартами
     ports:
       - "1025:1025"  # SMTP (внешний доступ опционально)
