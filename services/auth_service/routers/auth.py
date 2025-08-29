@@ -41,11 +41,17 @@ def _send_mail(to_email: str, subject: str, html: str, text: Optional[str] = Non
     if text:
         msg.set_content(text)
     msg.add_alternative(html, subtype="html")
+    
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:  # Mailpit: без TLS/логина
+        # если SMTP боевой
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:
+            s.starttls()  # включаем TLS
+            s.login(os.getenv("SMTP_USER"), os.getenv("SMTP_PASSWORD"))
             s.send_message(msg)
+        print(f"[MAIL] sent to {to_email}")
     except Exception as e:
         print(f"[MAIL] send error: {e}")
+
 
 # ---------- Admin guard (для CRUD) ----------
 admin_scheme = HTTPBearer(description="Service Admin JWT", auto_error=False)
