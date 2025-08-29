@@ -9,6 +9,7 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 # ---------- Базовые перечисления ----------
 class AdminRole(str, Enum):
+    owner = "owner"
     superadmin = "superadmin"
     admin = "admin"
     moderator = "moderator"
@@ -18,7 +19,7 @@ class AdminRole(str, Enum):
 # ---------- Универсальные ответы ----------
 class ErrorResponse(BaseModel):
     code: str = Field(..., description="Ключ ошибки (например, DUPLICATE_USERNAME)")
-    message: str = Field(..., description="Человекочитаемое описание ошибки")
+    message: str = Field(..., description="Читаемое описание ошибки")
     details: Optional[dict] = Field(default=None, description="Доп. данные, если есть")
 
 
@@ -26,12 +27,6 @@ class PageMeta(BaseModel):
     page: int = 1
     page_size: int = 50
     total: int = 0
-
-
-class PageResponse(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    meta: PageMeta
-    # data: List[T] - заполняется в конкретных роутах типизировано
 
 
 # ---------- Аутентификация ----------
@@ -54,6 +49,15 @@ class AdminLoginResponse(BaseModel):
     role: AdminRole = AdminRole.admin
     tokens: TokenPair
 
+# ---------- Пагинация ----------
+class PageMeta(BaseModel):
+    page: int = 1
+    page_size: int = 50
+    total: int = 0
+
+class PageResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    meta: PageMeta
 
 # ---------- Пользователь админки ----------
 class AdminUserBase(BaseModel):
@@ -63,6 +67,13 @@ class AdminUserBase(BaseModel):
     role: AdminRole = AdminRole.admin
     is_active: bool = True
 
+    # ↓ новые свойства (необязательные)
+    subscription_code: Optional[str] = None
+    subscription_language: Optional[str] = None
+    subscription_name: Optional[str] = None
+
+class AdminUserCreate(AdminUserBase):
+    password: str = Field(min_length=6)
 
 class AdminUserOut(AdminUserBase):
     id: int
@@ -71,20 +82,16 @@ class AdminUserOut(AdminUserBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-
-class AdminUserCreate(AdminUserBase):
-    password: str = Field(min_length=6, description="Пароль для администратора")
-
-
 class AdminUserUpdate(BaseModel):
-    """
-    Частичное обновление (PATCH): все поля необязательные.
-    """
     email: Optional[EmailStr] = None
     username: Optional[str] = None
     subscription_status: Optional[bool] = None
     role: Optional[AdminRole] = None
     is_active: Optional[bool] = None
+
+    subscription_code: Optional[str] = None
+    subscription_language: Optional[str] = None
+    subscription_name: Optional[str] = None
 
 
 class AdminPasswordChange(BaseModel):
@@ -92,45 +99,24 @@ class AdminPasswordChange(BaseModel):
     new_password: str = Field(min_length=6)
 
 
-# ---------- Короткие вспомогательные модели ----------
-class UserShort(BaseModel):
-    id: int
-    login: str
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-# ---------- Аналитика / статистика ----------
-class RevenueBreakdown(BaseModel):
-    total: float = 0.0
-    last_7_days: float = 0.0
-    last_30_days: float = 0.0
-
-
-class AdminStats(BaseModel):
-    upload_count: int
-    users_count: int
-    revenue: RevenueBreakdown
-
-
 # ---------- Коллекции / пагинация ----------
 class AdminUsersPage(PageResponse):
     data: List[AdminUserOut]
 
 
-# ---------- Фильтры для поиска/листа ----------
+# ---------- Фильтры для поиска/листа (уменьшенная версия) ----------
 class AdminUserFilter(BaseModel):
-    """
-    Можно использовать как body для POST /admin/search
-    или распарсить как query-параметры.
-    """
     email: Optional[str] = None
     username: Optional[str] = None
     role: Optional[AdminRole] = None
     is_active: Optional[bool] = None
     subscription_status: Optional[bool] = None
 
+    # новые поля фильтра
+    subscription_code: Optional[str] = None
+    subscription_language: Optional[str] = None
+    subscription_name: Optional[str] = None
+
     page: int = 1
     page_size: int = 50
-    order_by: Optional[str] = Field(default="-date_registration",
-                                    description="Поле сортировки, '-' для DESC")
+    order_by: Optional[str] = "-date_registration"

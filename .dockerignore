@@ -10,6 +10,9 @@ __pycache__/
 venv/
 .env
 .env.*
+**/.env
+*.env
+*.env.local
 
 # Git / IDE
 .git
@@ -20,9 +23,15 @@ venv/
 # Node
 node_modules/
 yarn-error.log
+npm-debug.log
+pnpm-lock.yaml
+package-lock.json
 
 # Build artefacts
 dist/
 build/
 *.egg-info/
 
+# OS
+.DS_Store
+Thumbs.db

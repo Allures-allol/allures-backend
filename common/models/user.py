@@ -1,8 +1,7 @@
-# common/models/user.py
+# common/models/user.py  (добавь поля, чтобы ORM их «видел»)
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, text
 from datetime import datetime
 from common.db.base import Base
-from sqlalchemy.orm import relationship, Mapped
 
 class User(Base):
     __tablename__ = "users"
@@ -10,7 +9,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     is_email_confirmed = Column(Boolean, nullable=False, default=False)
     login = Column(String(255), unique=True, nullable=False)
-    password = Column(Text, nullable=False)  # TEXT в БД
+    password = Column(Text, nullable=False)
     full_name = Column(String(100))
     email = Column(String(255))
     phone = Column(String(30))
@@ -18,12 +17,12 @@ class User(Base):
     language = Column(String(20), default="uk")
     bonus_balance = Column(Integer, default=0)
     delivery_address = Column(String(255))
-    # серверный дефолт как в БД
     registered_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
     role = Column(String(50), default="user")
     is_blocked = Column(Boolean, default=False)
 
-    # необязательно, только ДЛЯ Alembic,чтобы «видел» частичный индекс
-    # __table_args__ = (
-    #     Index("uq_users_email", "email", unique=True, postgresql_where=text("email IS NOT NULL")),
-    # )
+    #  поля для одноразового кода подтверждения
+    email_code = Column(String(7))                     # сам код (6–7 знаков)
+    email_code_expires_at = Column(DateTime(timezone=True))
+    email_code_sent_at = Column(DateTime(timezone=True))
+    email_code_attempts = Column(Integer, default=0)

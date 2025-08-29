@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-import jwt  # PyJWT
+from jose import jwt, JWTError, ExpiredSignatureError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from typing import Optional

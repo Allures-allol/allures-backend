@@ -10,6 +10,12 @@ __pycache__/
 env/
 venv/
 ENV/
+.env
+**/.env
+
+*.pyc
+.env.local
+.env.prod
 
 # Packaging / build
 build/
@@ -31,7 +37,7 @@ htmlcov/
 Thumbs.db
 
 # Env files
-.env
+
 .env.*
 !.env.example
 

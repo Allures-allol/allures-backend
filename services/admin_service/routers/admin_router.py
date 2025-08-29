@@ -21,12 +21,12 @@ from services.admin_service.schemas.admin_schemas import (
     AdminPasswordChange,
     AdminUserFilter,
     ErrorResponse,
+    AdminRole
 )
 from services.admin_service.crud import admin_crud
 from services.admin_service.utils.security import verify_password
 
-# ВАЖНО: добавляем префикс — /admin/...
-router = APIRouter(prefix="/admin", tags=["Admin"])
+router = APIRouter(tags=["Admin"])
 
 # --------- аккаунты админов ---------
 @router.post("/create", response_model=AdminUserOut, responses={409: {"model": ErrorResponse}})
@@ -64,11 +64,18 @@ def get_all_admins(
     db: Session = Depends(get_db),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
+
     email: str | None = None,
     username: str | None = None,
-    role: str | None = None,
+    role: AdminRole | None = None,
     is_active: bool | None = None,
     subscription_status: bool | None = None,
+
+    # новые query для фильтрации
+    subscription_code: str | None = Query(None, description="exact match"),
+    subscription_language: str | None = Query(None, description="exact match (uk|ru|en)"),
+    subscription_name: str | None = Query(None, description="ILIKE %value%"),
+
     order_by: str | None = Query("-date_registration"),
 ):
     flt = AdminUserFilter(
@@ -77,6 +84,9 @@ def get_all_admins(
         role=role,
         is_active=is_active,
         subscription_status=subscription_status,
+        subscription_code=subscription_code,
+        subscription_language=subscription_language,
+        subscription_name=subscription_name,
         page=page,
         page_size=page_size,
         order_by=order_by,
@@ -120,9 +130,10 @@ async def activate_subscription(user_id: int, payment_id: int):
     if not base:
         raise HTTPException(status_code=500, detail="SUBSCRIPTION_SERVICE_URL is not set")
 
-    url = f"{base}/activate-subscription"  # base уже включает /subscription
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        resp = await client.post(url, params={"user_id": user_id, "payment_id": payment_id})
+    # если base уже заканчивается на /subscription — не дублируем
+    path = "/activate-subscription" if base.endswith("/subscription") else "/subscription/activate-subscription"
+    url = f"{base}{path}"
+
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             resp = await client.post(url, params={"user_id": user_id, "payment_id": payment_id})
@@ -131,9 +142,6 @@ async def activate_subscription(user_id: int, payment_id: int):
 
     if resp.status_code >= 400:
         ct = resp.headers.get("content-type", "")
-        raise HTTPException(
-            status_code=resp.status_code,
-            detail=resp.json() if ct.startswith("application/json") else resp.text
-        )
+        raise HTTPException(status_code=resp.status_code, detail=resp.json() if ct.startswith("application/json") else resp.text)
 
     return resp.json()
