@@ -103,15 +103,14 @@ services:
     restart: unless-stopped
     environment:
       MP_MAX_MESSAGES: "5000"
-      MAILPIT_BIND: "0.0.0.0"
-      MAILPIT_UI_BIND: "0.0.0.0" 
-      # MP_DATA_FILE: "/data/mailpit.db"   # хранить письма между рестартами
-    ports:
-      - "1025:1025"  # SMTP (внешний доступ опционально)
-      - "8025:8025"  # Web UI (внешний доступ для QA/фронта)
-    # volumes:
-    #   - /var/lib/mailpit:/data
+      MAILPIT_BIND: "0.0.0.0"       # слушаем все интерфейсы внутри контейнера
+      MAILPIT_UI_BIND: "0.0.0.0"    # UI тоже внутри сети
+    expose:
+      - "1025"  # SMTP для контейнеров
+      - "8025"  # Web UI для контейнеров
     networks: [allures-net]
+
+
 
 networks:
   allures-net:
