@@ -92,7 +92,7 @@ def startup_event():
 # --- Корень ---
 @app.get("/", tags=["meta"])
 def read_root():
-    return {"message": "Authorization Service is running. Test pipeline"}
+    return {"message": "Authorization Service is running."}
 
 # Запуск:
 # uvicorn services.auth_service.main:app --reload --port 8003
