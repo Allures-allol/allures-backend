@@ -6,6 +6,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
  && rm -rf /var/lib/apt/lists/*
 
+RUN find /app -name "*.pyc" -delete
+
 WORKDIR /app
 
 # 2) Кладём общий пакет common в образ (из корня репо)
