@@ -38,7 +38,7 @@ def _gen_code(n: int = 6) -> str:
 def _send_mail(to_email: str, subject: str, html: str, text: Optional[str] = None):
     SMTP_USER = os.getenv("SMTP_USER")
     SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
-    
+
     msg = EmailMessage()
     msg["From"] = f"{MAIL_FROM_NAME} <{MAIL_FROM}>"
     msg["To"] = to_email
@@ -48,11 +48,11 @@ def _send_mail(to_email: str, subject: str, html: str, text: Optional[str] = Non
     msg.add_alternative(html, subtype="html")
 
     try:
-        # Подключаемся на 587, обычный SMTP
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:
             s.ehlo()
-            s.starttls()           # TLS поверх соединения
-            s.ehlo()
+            if "starttls" in s.esmtp_features:  # проверяем поддержку
+                s.starttls()
+                s.ehlo()
             s.login(SMTP_USER, SMTP_PASSWORD)
             s.send_message(msg)
         print(f"[MAIL] sent to {to_email}")
@@ -60,6 +60,7 @@ def _send_mail(to_email: str, subject: str, html: str, text: Optional[str] = Non
         print(f"[MAIL] SMTP error: {repr(e)}")
     except Exception as e:
         print(f"[MAIL] other error: {repr(e)}")
+
 
 
 
