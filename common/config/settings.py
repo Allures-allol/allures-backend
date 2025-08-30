@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     NGROK_WEBHOOK_URL: str | None = Field(default=None, alias="NGROK_WEBHOOK_URL")
 
     # Monobank
-    MONOBANK_TOKEN: str | None = Field(default=None, alias="MONOBANK_TOKEN")
+    MONOBANK_TOKEN:"uujvmeBckfnaG1ig9SA3wJauQIKS30J4brsqhINnNREg"
     MONOBANK_WEBHOOK_SECRET: str | None = Field(default=None, alias="MONOBANK_WEBHOOK_SECRET")  # если отличается от токена
     MONOBANK_REDIRECT_URL: str = Field(default="https://example.com/return", alias="MONOBANK_REDIRECT_URL")
     MONOBANK_WEBHOOK_URL: str | None = Field(default=None, alias="MONOBANK_WEBHOOK_URL")  # если не задан — возьмём из PAYMENT_SERVICE_URL
