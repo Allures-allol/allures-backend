@@ -46,10 +46,13 @@ def _send_mail(to_email: str, subject: str, html: str, text: Optional[str] = Non
     msg.add_alternative(html, subtype="html")
     
     try:
-        with smtplib.SMTP_SSL(SMTP_HOST, 465) as s:  # TLS сразу
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:
+            s.ehlo()
+            s.starttls()       # включаем TLS
+            s.ehlo()
             s.login(SMTP_USER, SMTP_PASSWORD)
             s.send_message(msg)
-        print(f"[MAIL] sent to {to_email}")
+
     except smtplib.SMTPException as e:
         print(f"[MAIL] SMTP error: {repr(e)}")
     except Exception as e:
