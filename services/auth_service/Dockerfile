@@ -3,6 +3,7 @@ FROM python:3.10-slim
 # 1) Базовые системные утилиты (минимум)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    openssl \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
