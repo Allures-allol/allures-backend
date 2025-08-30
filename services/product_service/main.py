@@ -112,4 +112,4 @@ def debug_products_count(db: Session = Depends(get_db)):
 # graphql_app = GraphQLRouter(review_schema)
 # app.include_router(graphql_app, prefix="/graphql_app")
 
-# python -m uvicorn services.product_service.main:app --reload --port 8000
+# uvicorn services.product_service.main:app --reload --port 8000

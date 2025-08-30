@@ -1,16 +1,24 @@
-# services.payment_service/schemas/payment.py
-from pydantic import BaseModel
+# services/payment_service/schemas/payment.py
+from pydantic import BaseModel, Field
+from typing import Optional
 from datetime import datetime
+from decimal import Decimal
 
-class PaymentCreate(BaseModel):
-    user_id: int
-    amount: float
-    status: str
-    payment_url: str | None = None  # делаем опциональным для простоты
+class PaymentBase(BaseModel):
+    user_id: Optional[int] = None
+    subscription_id: Optional[int] = None
+    amount: Decimal = Field(..., gt=0)
+    status: str = "pending"
+    payment_url: Optional[str] = None
+    provider: Optional[str] = None
+    provider_invoice_id: Optional[str] = None
 
-class PaymentOut(PaymentCreate):
+class PaymentCreate(PaymentBase):
+    pass
+
+class PaymentOut(PaymentBase):
     id: int
     created_at: datetime
-
     class Config:
-        from_attributes = True  # Pydantic v2+
+        from_attributes = True
+
