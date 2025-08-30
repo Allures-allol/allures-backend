@@ -4,6 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from typing import List, Optional
+from pydantic import BaseModel
 
 from common.db.session import get_db
 from common.models.products import Product as ProductModel
@@ -116,6 +117,7 @@ def list_by_company(
     )
 
 # ---------- CATEGORIES ----------
+
 @router.get("/categories", response_model=List[CategorySchema])
 def list_categories(db: Session = Depends(get_db)):
     """Вернёт все категории (глобальные)."""
@@ -129,6 +131,62 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(db_category)
         return db_category
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+# ---- PATCH /categories/{category_id} ----
+class CategoryUpdate(BaseModel):
+    category_name: Optional[str] = None
+
+@router.patch("/categories/{category_id}", response_model=CategorySchema)
+def patch_category(
+    category_id: int,
+    body: CategoryUpdate,
+    db: Session = Depends(get_db),
+):
+    cat = (
+        db.query(CategoryModel)
+          .filter(CategoryModel.category_id == category_id)
+          .first()
+    )
+    if not cat:
+        raise HTTPException(status_code=404, detail=f"Category with ID {category_id} not found")
+
+    payload = body.dict(exclude_unset=True)
+    if not payload:
+        return cat  # нечего менять
+
+    # обновление имени с валидацией и защитой от дублей
+    if "category_name" in payload and payload["category_name"] is not None:
+        new_name = payload["category_name"].strip()
+        if not new_name:
+            raise HTTPException(status_code=422, detail="category_name cannot be empty")
+
+        # проверка дубля: case-insensitive, обрезаем пробелы
+        dupe = (
+            db.query(CategoryModel.category_id)
+              .filter(
+                  func.lower(func.btrim(CategoryModel.category_name)) == new_name.lower(),
+                  CategoryModel.category_id != category_id
+              )
+              .first()
+        )
+        if dupe:
+            raise HTTPException(status_code=409, detail="Category with this name already exists")
+
+        # собственно обновление
+        cat.category_name = new_name
+
+        # синхронизируем денормализованное имя в товарах
+        db.query(ProductModel)\
+          .filter(ProductModel.category_id == category_id)\
+          .update({ProductModel.category_name: new_name}, synchronize_session=False)
+
+    try:
+        db.commit()
+        db.refresh(cat)
+        return cat
     except SQLAlchemyError as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
