@@ -8,12 +8,12 @@ services:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
       # === SMTP через Mailpit (внутренняя сеть) ===
-      SMTP_HOST: mailpit
-      SMTP_PORT: "1025"
+      #SMTP_HOST: mailpit
+      #SMTP_PORT: "1025"       
     command: uvicorn services.auth_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8003:8000"]
     networks: [allures-net]
-    depends_on: [mailpit]
+    #depends_on: [mailpit]
 
   # остальные сервисы без изменений…
   product_service:
@@ -97,18 +97,18 @@ services:
     networks: [allures-net]
 
   # ==== Mailpit (SMTP + Web UI) ====
-  mailpit:
-    image: axllent/mailpit:latest
-    container_name: mailpit
-    restart: unless-stopped
-    environment:
-      MP_MAX_MESSAGES: "5000"
-      MAILPIT_BIND: "0.0.0.0"       # слушаем все интерфейсы внутри контейнера
-      MAILPIT_UI_BIND: "0.0.0.0"    # UI тоже внутри сети
-    expose:
-      - "1025"  # SMTP для контейнеров
-      - "8025"  # Web UI для контейнеров
-    networks: [allures-net]
+#  mailpit:
+#    image: axllent/mailpit:latest
+#    container_name: mailpit
+#    restart: unless-stopped
+#    environment:
+#      MP_MAX_MESSAGES: "5000"
+#      MAILPIT_BIND: "0.0.0.0"       # слушаем все интерфейсы внутри контейнера
+#      MAILPIT_UI_BIND: "0.0.0.0"    # UI тоже внутри сети
+#    expose:
+#      - "1025"  # SMTP для контейнеров
+#      - "8025"  # Web UI для контейнеров
+#    networks: [allures-net]
 
 
 
