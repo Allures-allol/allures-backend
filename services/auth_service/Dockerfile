@@ -6,8 +6,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
  && rm -rf /var/lib/apt/lists/*
 
-RUN find /app -name "*.pyc" -delete
-
 WORKDIR /app
 
 # 2) Кладём общий пакет common в образ (из корня репо)
@@ -28,6 +26,8 @@ COPY services/auth_service /app/services/auth_service
 
 # 6) PYTHONPATH, чтобы импортировать общий пакет common.*
 ENV PYTHONPATH=/app
+
+RUN [ -d /app ] && find /app -name "*.pyc" -delete
 
 # 7) Команда запуска
 CMD ["uvicorn", "services.auth_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
