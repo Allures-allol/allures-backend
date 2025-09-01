@@ -9,6 +9,7 @@ import httpx
 from sqlalchemy import text as sqla_text
 import traceback
 
+from common.api.auth_deps import get_current_user_id
 from common.db.session import get_db
 from common.config.settings import settings
 from fastapi.responses import JSONResponse
@@ -23,7 +24,8 @@ from services.payment_service.crud.payment import (
     get_payments_by_user,
     create_nowpayment_invoice,
 )
-
+from fastapi import Depends
+from common.api.auth_deps import get_current_user_id
 from services.payment_service.schemas.monobank import MonoCreateInvoiceIn, MonoCreateInvoiceOut
 from services.payment_service.crud.monobank import monobank_create_invoice, verify_monobank_signature
 from services.payment_service.schemas.payment import PaymentCreate
@@ -59,7 +61,11 @@ def list_user_payments(user_id: int, db: Session = Depends(get_db)):
 
 # ----- Monobank: create -----
 @router.post("/monobank/create", response_model=MonoCreateInvoiceOut)
-async def monobank_create(data: MonoCreateInvoiceIn, db: Session = Depends(get_db)):
+async def monobank_create(
+    data: MonoCreateInvoiceIn,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),   # ← берём user_id из токена!
+):
     try:
         res = await monobank_create_invoice(
             amount_uah=data.amount_uah,
@@ -69,28 +75,29 @@ async def monobank_create(data: MonoCreateInvoiceIn, db: Session = Depends(get_d
         )
 
         created = create_payment(db, PaymentCreate(
-            user_id = data.user_id or 1,
-            subscription_id = data.subscription_id,          # ← сохраняем
-            amount = data.amount_uah,
-            status = "pending",
-            payment_url = res["pageUrl"],
-            provider = "monobank",
-            provider_invoice_id = res["invoiceId"],
+            user_id=user_id,                       # ← всегда реальный юзер
+            subscription_id=data.subscription_id,
+            amount=data.amount_uah,
+            status="pending",
+            payment_url=res["pageUrl"],
+            provider="monobank",
+            provider_invoice_id=res["invoiceId"],
         ))
 
         return MonoCreateInvoiceOut(
-            pageUrl = res["pageUrl"],
-            invoiceId = res["invoiceId"],
-            status = "pending",
-            amount = float(data.amount_uah),
-            user_id = data.user_id,
-            subscription_id = data.subscription_id,          # ← возвращаем
+            pageUrl=res["pageUrl"],
+            invoiceId=res["invoiceId"],
+            status=created.status,
+            amount=float(created.amount),
+            user_id=created.user_id,
+            subscription_id=created.subscription_id,
         )
 
     except (httpx.HTTPStatusError, RuntimeError) as e:
         raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Monobank create failed: {e}")
+
 # ----- Monobank: webhook -----
 @router.post("/monobank/webhook")
 async def monobank_webhook(
@@ -248,3 +255,7 @@ async def payment_webhook(request: Request, db: Session = Depends(get_db)):
         return {"status": "ok"}
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=400)
+
+@router.get("/me")
+def me(user_id: int = Depends(get_current_user_id)):
+    return {"user_id": user_id}

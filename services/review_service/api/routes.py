@@ -94,6 +94,7 @@ def _normalize_code_from_name(subscription_name: Optional[str]) -> Optional[str]
     return _SYNONYM_TO_CODE.get(norm) or _norm_code_or_name(subscription_name)
 
 # === REVIEWS ===
+
 @router.post("/", response_model=ReviewOut)
 def add_review(review: ReviewCreate, db: Session = Depends(get_db)):
     return controller.create_review(db, review)

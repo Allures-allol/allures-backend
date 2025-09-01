@@ -1,7 +1,6 @@
 # services/review_service/main.py
 import sys
 import os
-# import common.utils.env_loader
 
 # Добавление корневого пути (для доступа к /services и /common)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
@@ -82,6 +81,5 @@ def health():
 @app.get("/")
 def root():
     return {"message": "Review Service is running"}
-
 
 # uvicorn services.review_service.main:app --reload --port 8002

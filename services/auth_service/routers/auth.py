@@ -1,83 +1,39 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+# services/auth_service/routers/auth.py
+from __future__ import annotations
+
+import os
+from datetime import datetime, timedelta, timezone
+from secrets import token_hex
+
+from fastapi import APIRouter, Depends, HTTPException, Security, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi import Security
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import datetime, timedelta, timezone
-from email.message import EmailMessage
-from typing import Optional
-import os, smtplib, secrets
-
-import ssl
 
 from common.db.session import get_db
 from common.models.user import User
-from services.auth_service.utils.security import hash_password, verify_password
+from common.models.session_token import SessionToken
+from common.api.auth_deps import get_current_user, get_current_user_id
+from common.security.jwt import create_access_token, verify_access_token  # ← JWT берём из common
+
+from services.auth_service.utils.security import (
+    hash_password,           # ← из utils только пароли
+    verify_password,
+)
 from services.auth_service.schemas.user import (
-    RegisterIn, VerifyRequestIn, VerifyConfirmIn, LoginIn, UserOut
+    RegisterIn, VerifyRequestIn, VerifyConfirmIn, LoginIn, UserOut, LoginOut
 )
 
-# Если в app main НЕТ root_path="/auth":
-# router = APIRouter(prefix="/auth", tags=["auth-simple"])
-# Если root_path="/auth", то так:
-router = APIRouter(prefix="", tags=["auth-simple"])
+# в Swagger отдельный “замок”
+bearer_scheme_user = HTTPBearer(auto_error=False, scheme_name="UserAuth")
 
-# ---------- Mailpit / config ----------
-SMTP_HOST = os.getenv("SMTP_HOST")
-SMTP_PORT = int(os.getenv("SMTP_PORT"))
-MAIL_FROM = os.getenv("MAIL_FROM")
-MAIL_FROM_NAME = os.getenv("MAIL_FROM_NAME")
-EMAIL_CODE_TTL_MIN = int(os.getenv("EMAIL_CODE_TTL_MIN"))
+router = APIRouter(tags=["auth-simple"])
 
-def _now_utc() -> datetime:
-    return datetime.now(tz=timezone.utc)
+# --- Флаги/настройки
+EMAIL_ENABLED = os.getenv("EMAIL_ENABLED", "0").strip().lower() in ("1", "true", "yes")
+SESSION_TTL_MIN = int(os.getenv("SESSION_TTL_MIN", "10080"))  # 7 дней по умолчанию
 
-def _gen_code(n: int = 6) -> str:
-    return f"{secrets.randbelow(10**n):0{n}d}"
-
-def _send_mail(to_email: str, subject: str, html: str, text: Optional[str] = None):
-    SMTP_USER = os.getenv("SMTP_USER")
-    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
-
-    msg = EmailMessage()
-    msg["From"] = f"{MAIL_FROM_NAME} <{MAIL_FROM}>"
-    msg["To"] = to_email
-    msg["Subject"] = subject
-    if text:
-        msg.set_content(text)
-    msg.add_alternative(html, subtype="html")
-
-    try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:
-            s.ehlo()
-            if "starttls" in s.esmtp_features:  # проверяем поддержку
-                s.starttls()
-                s.ehlo()
-            s.login(SMTP_USER, SMTP_PASSWORD)
-            s.send_message(msg)
-        print(f"[MAIL] sent to {to_email}")
-    except smtplib.SMTPException as e:
-        print(f"[MAIL] SMTP error: {repr(e)}")
-    except Exception as e:
-        print(f"[MAIL] other error: {repr(e)}")
-
-
-
-
-
-# ---------- Admin guard (для CRUD) ----------
-admin_scheme = HTTPBearer(description="Service Admin JWT", auto_error=False)
-
-def admin_guard(credentials: HTTPAuthorizationCredentials = Security(admin_scheme)):
-    admin_jwt = os.getenv("ADMIN_JWT", "")
-    if not admin_jwt:
-        raise HTTPException(status_code=500, detail="ADMIN_JWT is not configured")
-    if not credentials or not credentials.credentials:
-        raise HTTPException(status_code=401, detail="Missing admin bearer token")
-    if credentials.credentials != admin_jwt:
-        raise HTTPException(status_code=403, detail="Invalid admin token")
-
-# ---------- Регистрация (login=email + password) ----------
+# ---------- Регистрация ----------
 @router.post("/register")
 def register(data: RegisterIn, db: Session = Depends(get_db)):
     login_norm = (data.login or "").strip().lower()
@@ -93,123 +49,79 @@ def register(data: RegisterIn, db: Session = Depends(get_db)):
         login=login_norm,
         email=login_norm,
         password=hash_password(data.password),
-        is_email_confirmed=False,
+        is_email_confirmed=not EMAIL_ENABLED,  # почта выкл → подтверждаем сразу
         is_blocked=False,
     )
-    db.add(u)
-    db.flush()  # получим u.id
-
-    code = _gen_code(6)
-    u.email_code = code
-    u.email_code_expires_at = _now_utc() + timedelta(minutes=EMAIL_CODE_TTL_MIN)
-    u.email_code_sent_at = _now_utc()
-    u.email_code_attempts = 0
-
-    db.commit()
-    db.refresh(u)
-
-    subj = "Підтвердження e-mail | Allures"
-    html = f"""
-    <p>Вітаємо!</p>
-    <p>Ваш код підтвердження: <strong style="font-size:20px">{code}</strong></p>
-    <p>Код дійсний {EMAIL_CODE_TTL_MIN} хвилин.</p>
-    """
-    _send_mail(u.email, subj, html, text=f"Verification code: {code}")
-
-    return {"message": "Користувача створено, код відправлено на пошту", "login": u.login}
-
-# ---------- Повторная отправка кода ----------
-@router.post("/verify/request")
-def verify_request(data: VerifyRequestIn, db: Session = Depends(get_db)):
-    login_norm = (data.login or "").strip().lower()
-    u = db.query(User).filter(func.lower(func.btrim(User.login)) == login_norm).first()
-    if not u:
-        raise HTTPException(status_code=404, detail="Користувача не знайдено")
-    if u.is_email_confirmed:
-        return {"message": "Email вже підтверджено"}
-
-    if u.email_code_sent_at and (_now_utc() - u.email_code_sent_at).total_seconds() < 30:
-        raise HTTPException(status_code=429, detail="Занадто часто, спробуйте пізніше")
-
-    code = _gen_code(6)
-    u.email_code = code
-    u.email_code_expires_at = _now_utc() + timedelta(minutes=EMAIL_CODE_TTL_MIN)
-    u.email_code_sent_at = _now_utc()
-    u.email_code_attempts = 0
-    db.commit()
-
-    subj = "Підтвердження e-mail | Allures (повторно)"
-    html = f"""
-    <p>Ваш новий код: <strong style="font-size:20px">{code}</strong></p>
-    <p>Код дійсний {EMAIL_CODE_TTL_MIN} хвилин.</p>
-    """
-    _send_mail(u.email, subj, html, text=f"Verification code: {code}")
-    return {"message": "Код повторно відправлено"}
-
-# ---------- Подтверждение кода ----------
-@router.post("/verify/confirm")
-def verify_confirm(data: VerifyConfirmIn, db: Session = Depends(get_db)):
-    login_norm = (data.login or "").strip().lower()
-    u = db.query(User).filter(func.lower(func.btrim(User.login)) == login_norm).first()
-    if not u:
-        raise HTTPException(status_code=404, detail="Користувача не знайдено")
-    if u.is_email_confirmed:
-        return {"message": "Email вже підтверджено"}
-
-    if (u.email_code_attempts or 0) >= 5:
-        raise HTTPException(status_code=429, detail="Забагато спроб, надішліть код знову")
-
-    if not u.email_code or not u.email_code_expires_at or _now_utc() > u.email_code_expires_at:
-        raise HTTPException(status_code=400, detail="Код прострочено, надішліть код знову")
-
-    if (data.code or "").strip() != u.email_code:
-        u.email_code_attempts = (u.email_code_attempts or 0) + 1
-        db.commit()
-        raise HTTPException(status_code=400, detail="Невірний код")
-
-    u.is_email_confirmed = True
-    u.email_code = None
-    u.email_code_expires_at = None
-    u.email_code_sent_at = None
-    u.email_code_attempts = 0
-    db.commit()
-
-    return {"message": "Email підтверджено"}
+    db.add(u); db.commit(); db.refresh(u)
+    return {"message": "Користувача створено", "login": u.login, "email_enabled": EMAIL_ENABLED}
 
 # ---------- Логин ----------
-@router.post("/login")
-def login(data: LoginIn, db: Session = Depends(get_db)):
+@router.post("/login", response_model=LoginOut)
+def login(data: LoginIn, request: Request, db: Session = Depends(get_db)):
     login_norm = (data.login or "").strip().lower()
     u = db.query(User).filter(func.lower(func.btrim(User.login)) == login_norm).first()
     if not u:
         raise HTTPException(status_code=404, detail="Користувача не знайдено")
-    if not u.is_email_confirmed:
+    if EMAIL_ENABLED and not u.is_email_confirmed:
         raise HTTPException(status_code=403, detail="Підтвердіть email")
-
     if not verify_password(data.password, u.password):
         raise HTTPException(status_code=401, detail="Невірний пароль")
 
-    return {"message": "Успішний вхід", "user": UserOut.model_validate(u)}
+    # jti + токен
+    jti = token_hex(16)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=SESSION_TTL_MIN)
+    token = create_access_token(
+        user_id=u.id,
+        expires_minutes=SESSION_TTL_MIN,
+        extra_claims={"email": u.email, "role": getattr(u, "role", "user"), "jti": jti},
+    )
 
-# ---------- CRUD пользователей (только сервисный токен) ----------
-@router.get("/users", response_model=list[UserOut])
-def list_users(
-    db: Session = Depends(get_db),
-    limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
-    _=Security(admin_guard),  # именно Security, чтобы Swagger показал Authorize
-):
-    return db.query(User).order_by(User.id.asc()).limit(limit).offset(offset).all()
-
-@router.delete("/users/{user_id}")
-def delete_user(
-    user_id: int,
-    db: Session = Depends(get_db),
-    _=Security(admin_guard),
-):
-    u = db.query(User).filter(User.id == user_id).first()
-    if not u:
-        raise HTTPException(status_code=404, detail="Користувача не знайдено або вже видалено")
-    db.delete(u)
+    # запись сессии
+    user_agent = request.headers.get("user-agent")
+    ip = request.client.host if request.client else None
+    db.add(SessionToken(
+        user_id=u.id,
+        jti=jti,
+        issued_at=datetime.now(timezone.utc),
+        expires_at=expires_at,
+        user_agent=user_agent,
+        ip=ip,
+        is_revoked=False,
+    ))
     db.commit()
-    return {"message": f"Користувач {user_id} успішно видалений"}
+
+    return {
+        "message": "Успішний вхід",
+        "access_token": token,
+        "token_type": "bearer",
+        "user": UserOut.model_validate(u),
+    }
+
+# ---------- Logout ----------
+@router.post("/logout")
+def logout(
+    credentials: HTTPAuthorizationCredentials = Security(bearer_scheme_user),  # <-- используем именованный
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
+    if not credentials or not credentials.credentials:
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    payload = verify_access_token(credentials.credentials)
+    jti = payload.get("jti")
+    if not jti:
+        raise HTTPException(status_code=400, detail="Token missing jti")
+
+    s = db.query(SessionToken).filter(
+        SessionToken.jti == jti,
+        SessionToken.user_id == user_id
+    ).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Session not found")
+    s.is_revoked = True
+    db.commit()
+    return {"ok": True}
+
+@router.get("/__debug/user/{user_id}")
+def dbg_user(user_id: int, db: Session = Depends(get_db)):
+    u = db.query(User).filter(User.id == user_id).first()
+    return {"found": bool(u), "id": u.id if u else None, "login": getattr(u, "login", None)}

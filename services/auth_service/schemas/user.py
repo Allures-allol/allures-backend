@@ -1,8 +1,10 @@
+# services/auth_service/schemas/user.py
+
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
 
-# ------ Регистрация / подтверждение кода ------
+# ------ Вход ------
 class RegisterIn(BaseModel):
     login: str = Field(..., example="user@example.com")
     password: str = Field(..., min_length=6, example="YourStrongPassword123!")
@@ -18,7 +20,7 @@ class LoginIn(BaseModel):
     login: str = Field(..., example="user@example.com")
     password: str = Field(..., example="YourStrongPassword123!")
 
-# ------ Вывод пользователя ------
+# ------ Выход пользователя ------
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -30,3 +32,10 @@ class UserOut(BaseModel):
     registered_at: Optional[datetime] = None
     is_blocked: Optional[bool] = False
     is_email_confirmed: Optional[bool] = False
+
+# ------ Ответ логина ------
+class LoginOut(BaseModel):
+    message: str = "Успішний вхід"
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut
