@@ -67,7 +67,7 @@ def startup_event():
 
 @app.get("/", tags=["meta"])
 def read_root():
-    return {"message": "Authorization Service is running."}
+    return {"message": "Authorization Service is running. Pipeline test"}
 
 @app.get("/__debug/db_url")
 def dbg_db():

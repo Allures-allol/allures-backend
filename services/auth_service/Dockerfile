@@ -27,6 +27,8 @@ COPY services/auth_service /app/services/auth_service
 # 6) PYTHONPATH, чтобы импортировать общий пакет common.*
 ENV PYTHONPATH=/app
 
+RUN [ -d /app ] && find /app -name "*.pyc" -delete
+
 # 7) Команда запуска
 CMD ["uvicorn", "services.auth_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
