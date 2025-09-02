@@ -2,6 +2,8 @@ anyio==4.4.0
 fastapi==0.115.13
 pydantic==2.8.2
 pydantic-core==2.20.1
+pydantic-settings==2.3.0
+
 uvicorn[standard]==0.30.6
 starlette==0.41.2
 SQLAlchemy==2.0.31

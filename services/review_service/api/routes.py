@@ -20,10 +20,12 @@ from services.review_service.api.schemas import (
 from services.review_service.api.crud import (
     create_recommendation, update_recommendation,
     delete_recommendation, get_recommendations_filtered,
-    get_reviews_by_subscription as crud_get_reviews_by_subscription
+    get_reviews_by_subscription as crud_get_reviews_by_subscription, get_reviews_by_status, update_review_status
 )
+from services.review_service.api.controller import create_review, get_reviews_by_product, update_review_status, get_reviews_by_status
 
 from common.models.products import Product as ProductModel
+
 # Локальная схема для подписки, чтобы не тянуть импорт из subscription_service
 try:
     # Pydantic v2
@@ -94,23 +96,47 @@ def _normalize_code_from_name(subscription_name: Optional[str]) -> Optional[str]
     return _SYNONYM_TO_CODE.get(norm) or _norm_code_or_name(subscription_name)
 
 # === REVIEWS ===
-
-@router.post("/", response_model=ReviewOut)
-def add_review(review: ReviewCreate, db: Session = Depends(get_db)):
-    return controller.create_review(db, review)
-
-@router.get("/product/{product_id}", response_model=List[ReviewOut])
-def get_reviews(product_id: int, db: Session = Depends(get_db)):
-    # Совпадает с ProductService.review_client: /reviews/product/{product_id}
-    return controller.get_reviews_by_product(db, product_id)
-
+# Получение всех отзывов
 @router.get("/", response_model=List[ReviewOut])
 def get_all_reviews(db: Session = Depends(get_db)):
-    return db.query(Review).all()
+    return db.query(Review).all()  # Возвращаем все отзывы
 
-@router.get("/user/{user_id}", response_model=List[ReviewOut])
-def get_reviews_by_user(user_id: int, db: Session = Depends(get_db)):
-    return db.query(Review).filter(Review.user_id == user_id).all()
+# Получение отзывов по продукту
+@router.get("/product/{product_id}", response_model=List[ReviewOut])
+def get_reviews_by_product_route(product_id: int, db: Session = Depends(get_db)):
+    # Получаем отзывы по конкретному продукту
+    reviews = get_reviews_by_product(db, product_id)
+    if not reviews:
+        raise HTTPException(status_code=404, detail="Reviews not found")
+    return reviews
+
+# Добавление нового отзыва
+@router.post("/", response_model=ReviewOut)
+def add_review(review: ReviewCreate, db: Session = Depends(get_db)):
+    return create_review(db, review)
+
+# Получение отзывов по статусу (для модерации)
+@router.get("/by-status", response_model=List[ReviewOut])
+def get_reviews_by_status_route(status: str, db: Session = Depends(get_db)):
+    return get_reviews_by_status(db, status)
+
+# Роут для модерации отзыва (обновление статуса)
+@router.post("/moderate/{review_id}", response_model=ReviewOut)
+def update_review_status_route(review_id: int, status: str, db: Session = Depends(get_db)):
+    return update_review_status(db, review_id, status)
+
+@router.put("/update-status/{review_id}", response_model=ReviewOut)
+def update_review_status_route(
+    review_id: int,
+    status: str,  # "pending", "approved", or "rejected"
+    db: Session = Depends(get_db)
+):
+    if status not in ['PENDING', 'APPROVED', 'REJECTED']:
+        raise HTTPException(status_code=400, detail="Invalid status. Choose 'PENDING', 'APPROVED' or 'REJECTED'.")
+
+    review = update_review_status(db, review_id, status)
+    return review
+
 
 @router.get("/by-subscription", response_model=List[ReviewOut])
 def reviews_by_subscription(
@@ -119,19 +145,24 @@ def reviews_by_subscription(
         None,
         description="Free/Basic/Advanced/Premium или синонимы (укр/рус). Приоритет у ID."
     ),
-    lang: Optional[str] = Query(None, description="ru|uk|en (опционально)"),
+    lang: Optional[str] = Query(None, description="uk|ru|en (опционально)"),
+    status: Optional[str] = Query(None, description="Фильтрация по статусу отзыва"),
     db: Session = Depends(get_db),
 ):
     if subscription_id is None and not subscription_name:
         raise HTTPException(status_code=400, detail="Provide subscription_id or subscription_name")
 
-    return crud_get_reviews_by_subscription(
+    reviews = crud_get_reviews_by_subscription(
         db=db,
         subscription_name=subscription_name,
         subscription_id=subscription_id,
         lang=lang,
     )
 
+    if status:
+        reviews = [review for review in reviews if review.status == status]
+
+    return reviews
 
 # --- lookup подписки прямо из review-сервиса (аналогично subscription_service/lookup) ---
 
@@ -142,7 +173,7 @@ def lookup_subscription_via_review(
         None,
         description=(
             "Безкоштовна/Бесплатная/Free, Базовий/Базовый/Basic, "
-            "Просунутий/Продвинутый/Advanced, Преміум/Премиум/Premium"
+            "Просунутий/Продвинутый/Advanced, Преміум/Преміум/Premium"
         ),
     ),
     lang: Optional[str] = Query(None, description="uk|ru|en (опционально)"),

@@ -1,14 +1,15 @@
 # services/review_service/api/crud.py
 from typing import List, Optional
-from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
-from fastapi import HTTPException
-from sqlalchemy.exc import SQLAlchemyError
 import unicodedata
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
 from services.review_service.models.review import Review
 from services.review_service.models.recommendation import Recommendation
 from services.review_service.api.schemas import ReviewCreate, RecommendationCreate
 from common.models.subscriptions import Subscription, UserSubscription
+
 
 _SYNONYM_TO_CODE = {
     "базовий": "basic", "базовый": "basic", "basic": "basic",
@@ -39,14 +40,24 @@ def _normalize_code_from_name(subscription_name: Optional[str]) -> Optional[str]
     return _SYNONYM_TO_CODE.get(norm) or _norm_code_or_name(subscription_name)
 
 # ---------- Reviews ----------
+
+# Функция для получения всех отзывов по продукту
+def get_reviews_by_product(db: Session, product_id: int) -> List[Review]:
+    """
+    Получаем все отзывы для определенного продукта.
+    """
+    return db.query(Review).filter(Review.product_id == product_id).all()
+
+# Функция для создания отзыва
 def create_review(db: Session, review: ReviewCreate) -> Review:
     new_review = Review(
         product_id=review.product_id,
         user_id=review.user_id,
         text=review.text,
-        sentiment=getattr(review, "sentiment", None),
-        pos_score=getattr(review, "pos_score", None),
-        neg_score=getattr(review, "neg_score", None),
+        sentiment=review.sentiment,
+        pos_score=review.pos_score,
+        neg_score=review.neg_score,
+        status="PENDING"  # Строка вместо Enum
     )
     try:
         db.add(new_review)
@@ -55,10 +66,44 @@ def create_review(db: Session, review: ReviewCreate) -> Review:
         return new_review
     except SQLAlchemyError:
         db.rollback()
-        raise
+        raise HTTPException(status_code=500, detail="Error creating review")
 
-def get_all_reviews(db: Session) -> List[Review]:
-    return db.query(Review).order_by(Review.created_at.desc()).all()
+# Функция для получения отзывов по статусу
+def get_reviews_by_status(db: Session, status: str) -> List[Review]:
+    return db.query(Review).filter(Review.status == status).all()
+
+# Изменение статуса отзыва (например, для модератора)
+def update_review_status(db: Session, review_id: int, status: str) -> Review:
+    if status not in ['PENDING', 'APPROVED', 'REJECTED']:
+        raise HTTPException(status_code=400, detail="Invalid status. Choose 'PENDING', 'APPROVED' or 'REJECTED'.")
+
+    # Найдем отзыв по ID
+    review = db.query(Review).filter(Review.id == review_id).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    # Обновим статус
+    review.status = status  # Теперь статус — это строка
+    db.commit()
+    db.refresh(review)
+    return review
+
+# Функция для модерации отзыва (изменения статуса)
+def moderate_review(db: Session, review_id: int, action: str) -> Review:
+    # Проверяем, что действие валидное
+    if action not in ['PENDING', 'APPROVED', 'REJECTED']:
+        raise HTTPException(status_code=400, detail="Invalid action. Choose 'PENDING', 'APPROVED' or 'REJECTED'.")
+
+    # Находим отзыв по ID
+    review = db.query(Review).filter(Review.id == review_id).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    # Обновляем статус отзыва
+    review.status = action  # Строковое значение
+    db.commit()
+    db.refresh(review)
+    return review
 
 def get_reviews_by_sentiment(db: Session, sentiment: str) -> List[Review]:
     return db.query(Review).filter(Review.sentiment == sentiment).all()
@@ -147,6 +192,7 @@ def get_reviews_by_subscription(
 
 
 # ---------- Recommendations ----------
+
 def create_recommendation(db: Session, data: RecommendationCreate) -> Recommendation:
     new_rec = Recommendation(**data.dict())
     try:

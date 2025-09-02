@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, TIMESTAMP, func
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, TIMESTAMP
 from sqlalchemy.orm import relationship
 from common.db.base import Base
+from sqlalchemy import func
 
 class Review(Base):
     __tablename__ = "reviews"
@@ -13,9 +14,9 @@ class Review(Base):
     pos_score = Column(Float)
     neg_score = Column(Float)
     score = Column(Float)
-    lang = Column(String(2), nullable=False, server_default="uk")  # 👈 добавлено
+    status = Column(String, default="PENDING")  # Строковое поле для статуса
+    lang = Column(String(2), nullable=False, server_default="uk")  # Язык
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
-    # без back_populates
     user = relationship("User", lazy="joined")
     product = relationship("Product", lazy="joined")

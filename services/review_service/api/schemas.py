@@ -15,11 +15,9 @@ except Exception:
     # Pydantic v1 (fallback)
     class ORMModel(BaseModel):
         class Config:
-            orm_mode = True
-
+            from_attributes = True
 
 # === Reviews ===
-
 class ReviewCreate(BaseModel):
     product_id: int = Field(..., ge=1)
     user_id: int = Field(..., ge=1)
@@ -31,8 +29,7 @@ class ReviewCreate(BaseModel):
     pos_score: Optional[float] = Field(None, ge=0.0, le=1.0)
     neg_score: Optional[float] = Field(None, ge=0.0, le=1.0)
 
-
-class ReviewOut(ORMModel):
+class ReviewOut(BaseModel):
     id: int
     product_id: int
     user_id: int
@@ -40,8 +37,11 @@ class ReviewOut(ORMModel):
     sentiment: Optional[str] = None
     pos_score: Optional[float] = None
     neg_score: Optional[float] = None
+    status: str  # Строка вместо Enum
     created_at: datetime
 
+    class Config:
+        from_attributes = True
 
 # === Recommendations ===
 
@@ -57,7 +57,6 @@ class RecommendationOut(ORMModel):
     product_id: int
     score: float
     recommended_at: Optional[datetime] = None
-
 
 # === Search/Recommendation request/response ===
 

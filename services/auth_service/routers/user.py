@@ -5,6 +5,7 @@ import os
 from sqlalchemy.orm import Session
 
 from common.db.session import get_db
+from common.api.auth_deps import get_current_user
 from common.models.user import User
 from services.auth_service.schemas.user import UserOut
 from services.auth_service.crud.user import (
@@ -41,8 +42,12 @@ def list_users_public(
     """Вывести всех пользователей без авторизации (только для теста/фронта)."""
     return db.query(User).order_by(User.id.asc()).limit(limit).offset(offset).all()
 
-@router.get("/by-email", response_model=UserOut)   # <= СТАВИМ ВЫШЕ!
-def get_user_by_email_endpoint(email: str, db: Session = Depends(get_db)):
+@router.get("/by-email", response_model=UserOut)
+def get_user_by_email_endpoint(
+    email: str,
+    db: Session = Depends(get_db),
+    _=Security(admin_guard),
+):
     u = find_user_by_email(db, email)
     if not u:
         raise HTTPException(status_code=404, detail="User not found")
