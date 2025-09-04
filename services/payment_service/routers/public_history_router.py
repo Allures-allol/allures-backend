@@ -6,7 +6,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text as sqla_text
-
+from common.config.settings import settings
 from common.db.session import get_db
 from common.models.payment import Payment
 from services.payment_service.crud.payment import get_all_payments
@@ -124,6 +124,18 @@ def public_order_history(
 def debug_ping():
     return {"ok": True, "where": "public_history_router"}
 
+@router.get("/__debug/env", tags=["Debug"])
+def dbg_env_probe():
+    def mask(v: str | None) -> str:
+        if not v: return ""
+        if len(v) <= 8: return "***"
+        return v[:4] + "..." + v[-4:]
+    return {
+        "DATABASE_URL_set": bool(settings.DATABASE_URL),
+        "MAINDB_URL_set": bool(settings.MAINDB_URL),
+        "POSTGRES_triplet_set": all([settings.POSTGRES_USER, settings.POSTGRES_PASSWORD, settings.POSTGRES_DB]),
+        "effective_db_url_masked": mask(settings.effective_db_url),
+    }
 
 @router.post("/__debug/orders-bootstrap", tags=["Debug"], status_code=status.HTTP_200_OK)
 @router.get("/__debug/orders-bootstrap", tags=["Debug"], status_code=status.HTTP_200_OK)
