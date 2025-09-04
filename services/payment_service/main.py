@@ -1,4 +1,3 @@
-# services/payment_service/main.py
 import os
 import sys
 from fastapi import FastAPI
@@ -10,8 +9,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 
 from dotenv import load_dotenv
 from common.db.session import get_db
-from common.config.settings import settings
-from services.payment_service.routers.payment import router as payment_router
+from services.payment_service.routers.monobank_routes import router as monobank_router
+from services.payment_service.routers.public_history_router import router as public_history_router
 
 load_dotenv()
 
@@ -39,11 +38,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Роуты платежей (NowPayments + Monobank)
+# Публичные (без токенов): история платежей/заказов
 if USE_ROOT_PATH:
-    app.include_router(payment_router, tags=["payments"])
+    app.include_router(public_history_router)
 else:
-    app.include_router(payment_router, prefix="/payment", tags=["payments"])
+    app.include_router(public_history_router, prefix="/payment")
+
+# Monobank: создание инвойса + вебхук
+if USE_ROOT_PATH:
+    app.include_router(monobank_router, tags=["Monobank"])
+else:
+    app.include_router(monobank_router, prefix="/monobank", tags=["Monobank"])
+
+
+@app.on_event("startup")
+def startup_event():
+    # ... твоя проверка БД ...
+    print("=== ROUTES ===")
+    for r in app.routes:
+        try:
+            print(getattr(r, "path", None), getattr(r, "methods", None))
+        except Exception:
+            pass
 
 @app.get("/health")
 def health():
@@ -64,7 +80,6 @@ def startup_event():
 @app.get("/")
 def root():
     return {"message": "Payment Service is running"}
-
 
 # запуск локально:
 # uvicorn services.payment_service.main:app --reload --port 8005

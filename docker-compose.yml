@@ -89,26 +89,15 @@ services:
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
-      # если этот сервис тоже будет отправлять письма — раскомментировать:
-      # SMTP_HOST: mailpit
-      # SMTP_PORT: "1025"
+      PAYMENT_USE_ROOT_PATH: "1"               # ← если за прокси на /payment
+      MAINDB_URL: "${MAINDB_URL}"              # ← обязательна строка подключения
+      MONOBANK_TOKEN: "${MONOBANK_TOKEN}"      # ← если используется Monobank
+      MONOBANK_REDIRECT_URL: "${MONOBANK_REDIRECT_URL}"   # опционально
+      MONOBANK_WEBHOOK_URL: "${MONOBANK_WEBHOOK_URL}"     # опционально
+      # DEBUG: "0"
     command: uvicorn services.payment_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8005:8000"]
     networks: [allures-net]
-
-  # ==== Mailpit (SMTP + Web UI) ====
-#  mailpit:
-#    image: axllent/mailpit:latest
-#    container_name: mailpit
-#    restart: unless-stopped
-#    environment:
-#      MP_MAX_MESSAGES: "5000"
-#      MAILPIT_BIND: "0.0.0.0"       # слушаем все интерфейсы внутри контейнера
-#      MAILPIT_UI_BIND: "0.0.0.0"    # UI тоже внутри сети
-#    expose:
-#      - "1025"  # SMTP для контейнеров
-#      - "8025"  # Web UI для контейнеров
-#    networks: [allures-net]
 
 
 

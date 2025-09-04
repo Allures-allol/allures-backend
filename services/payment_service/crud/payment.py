@@ -1,4 +1,4 @@
-# services/payment_service/crud/payment.py
+# services/payment_service/crud/public_history_router.py
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from decimal import Decimal
@@ -13,8 +13,9 @@ def create_payment(db: Session, data) -> Payment:
     db.add(obj); db.commit(); db.refresh(obj)
     return obj
 
-def get_all_payments(db: Session) -> List[Payment]:
-    return db.query(Payment).all()
+def get_all_payments(db: Session):
+    return db.query(Payment).order_by(Payment.created_at.desc()).all()
+
 
 def get_payment_by_id(db: Session, payment_id: int) -> Optional[Payment]:
     return db.get(Payment, payment_id)
