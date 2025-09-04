@@ -7,8 +7,8 @@ from sqlalchemy.orm import sessionmaker
 
 from common.config.settings import settings
 
-DB_URL = settings.effective_db_url
-if not DB_URL:
+MAINDB_URL = settings.effective_db_url
+if not MAINDB_URL:
     raise RuntimeError(
 
         "Не задан URL БД. Укажи DATABASE_URL (предпочтительно) "
