@@ -61,7 +61,7 @@ else:
 print(" MAINDB_URL из settings:", settings.MAINDB_URL)
 
 
-@app.get("/health")
+@app.get("/health", include_in_schema=False)
 def health():
     return {"status": "ok"}
 
