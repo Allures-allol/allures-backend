@@ -1,4 +1,4 @@
-#main.py product_service
+# main.py product_service
 import os
 import sys
 from fastapi import FastAPI, Depends
@@ -15,13 +15,8 @@ from common.config.settings import settings
 from common.models.products import Product as ProductModel
 from common.models.categories import Category as CategoryModel
 
-# важно: роутер с префиксом
+# роутер продуктов
 from services.product_service.api.routes import router as product_router
-# from services.product_service.api import image_classifier_router
-# from services.review_service.api.routes import router as review_router
-
-# from graphql_app.schema import schema as review_schema
-# from strawberry.fastapi import GraphQLRouter
 
 # Загрузка .env переменных
 load_dotenv()
@@ -30,7 +25,6 @@ USE_ROOT_PATH = os.getenv("PRODUCT_USE_ROOT_PATH", "0") == "1"
 
 app = FastAPI(
     title="Product Service",
-    # если на проде прокси монтирует /product как root_path — оставь:
     root_path="/product" if USE_ROOT_PATH else "",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -52,7 +46,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ==============================
+# Health endpoint должен быть ОБЯЗАТЕЛЬНО до include_router
+# ==============================
+@app.get("/health", include_in_schema=False)
+def health():
+    return {"status": "ok"}
 
+# ==============================
+# Подключение роутера продуктов
+# ==============================
 if USE_ROOT_PATH:
     app.include_router(product_router, tags=["products"])
 else:
@@ -60,11 +63,9 @@ else:
 
 print(" MAINDB_URL из settings:", settings.MAINDB_URL)
 
-
-@app.get("/product/health")
-def health():
-    return {"status": "ok"}
-
+# ==============================
+# Событие старта
+# ==============================
 @app.on_event("startup")
 def startup_event():
     db_gen = get_db()
@@ -77,12 +78,9 @@ def startup_event():
     finally:
         db.close()
 
-# app.include_router(review_router, prefix="/reviews", tags=["Reviews"])
-# app.include_router(image_classifier_router.router, prefix="/product", tags=["AI classifier"])
-
-# db_url = os.getenv("MAINDB_URL")
-# print(" MAINDB_URL:", db_url)
-
+# ==============================
+# Другие маршруты
+# ==============================
 @app.get("/")
 def root():
     return {"message": "Product Service is running"}
@@ -107,9 +105,3 @@ def debug_db_url():
 @app.get("/__debug/products_count")
 def debug_products_count(db: Session = Depends(get_db)):
     return {"count": db.query(ProductModel).count()}
-
-# GraphQL (в будущем можно раскомментировать)
-# graphql_app = GraphQLRouter(review_schema)
-# app.include_router(graphql_app, prefix="/graphql_app")
-
-# uvicorn services.product_service.main:app --reload --port 8000
