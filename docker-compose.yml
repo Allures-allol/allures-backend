@@ -3,7 +3,7 @@ services:
     image: denstep123/auth-service:latest
     container_name: auth_service
     restart: unless-stopped
-    env_file: [/home/adminden/.env]
+    env_file: /home/adminden/.env
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
@@ -20,7 +20,7 @@ services:
     image: denstep123/product-service:latest
     container_name: product_service
     restart: unless-stopped
-    env_file: [/home/adminden/.env]
+    env_file: /home/adminden/.env
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
@@ -33,7 +33,7 @@ services:
     image: denstep123/review-service:latest
     container_name: review_service
     restart: unless-stopped
-    env_file: [/home/adminden/.env]
+    env_file: /home/adminden/.env
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
@@ -45,7 +45,7 @@ services:
     image: denstep123/subscription-service:latest
     container_name: subscription_service
     restart: unless-stopped
-    env_file: [/home/adminden/.env]
+    env_file: /home/adminden/.env
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
@@ -58,7 +58,7 @@ services:
     image: denstep123/admin-service:latest
     container_name: admin_service
     restart: unless-stopped
-    env_file: [/home/adminden/.env]
+    env_file: /home/adminden/.env
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
@@ -73,7 +73,7 @@ services:
     image: denstep123/profile-service:latest
     container_name: profile_service
     restart: unless-stopped
-    env_file: [/home/adminden/.env]
+    env_file: /home/adminden/.env
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
@@ -85,7 +85,7 @@ services:
     image: denstep123/payment-service:latest
     container_name: payment_service
     restart: unless-stopped
-    env_file: [/home/adminden/.env]
+    env_file: /home/adminden/.env
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
