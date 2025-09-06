@@ -14,7 +14,7 @@ services:
     ports: ["8003:8000"]
     networks: [allures-net]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # если есть /health endpoint
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]  # если есть /health endpoint
       interval: 30s
       timeout: 10s
       retries: 3
@@ -34,7 +34,7 @@ services:
     depends_on: [review_service]
     networks: [allures-net]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # если есть /health endpoint
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]  # если есть /health endpoint
       interval: 30s
       timeout: 10s
       retries: 3
@@ -52,7 +52,7 @@ services:
     ports: ["8002:8000"]
     networks: [allures-net]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # если есть /health endpoint
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]  # если есть /health endpoint
       interval: 30s
       timeout: 10s
       retries: 3
@@ -71,7 +71,7 @@ services:
     ports: ["8011:8000"]
     networks: [allures-net]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # если есть /health endpoint
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]  # если есть /health endpoint
       interval: 30s
       timeout: 10s
       retries: 3
@@ -92,7 +92,7 @@ services:
     depends_on: [subscription_service]
     networks: [allures-net]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # если есть /health endpoint
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]  # если есть /health endpoint
       interval: 30s
       timeout: 10s
       retries: 3
@@ -110,7 +110,7 @@ services:
     ports: ["8004:8000"]
     networks: [allures-net]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # если есть /health endpoint
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]  # если есть /health endpoint
       interval: 30s
       timeout: 10s
       retries: 3
@@ -134,7 +134,7 @@ services:
     ports: ["8005:8000"]
     networks: [allures-net]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # если есть /health endpoint
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]  # если есть /health endpoint
       interval: 30s
       timeout: 10s
       retries: 3
