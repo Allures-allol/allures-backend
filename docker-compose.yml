@@ -13,7 +13,12 @@ services:
     command: uvicorn services.auth_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8003:8000"]
     networks: [allures-net]
-    #depends_on: [mailpit]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # если есть /health endpoint
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # остальные сервисы без изменений…
   product_service:
@@ -28,6 +33,12 @@ services:
     ports: ["8000:8000"]
     depends_on: [review_service]
     networks: [allures-net]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # если есть /health endpoint
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   review_service:
     image: denstep123/review-service:latest
@@ -40,6 +51,12 @@ services:
     command: uvicorn services.review_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8002:8000"]
     networks: [allures-net]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # если есть /health endpoint
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   subscription_service:
     image: denstep123/subscription-service:latest
@@ -53,6 +70,12 @@ services:
     command: uvicorn services.subscription_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8011:8000"]
     networks: [allures-net]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # если есть /health endpoint
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   admin_service:
     image: denstep123/admin-service:latest
@@ -68,6 +91,12 @@ services:
     ports: ["8010:8000"]
     depends_on: [subscription_service]
     networks: [allures-net]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # если есть /health endpoint
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   profile_service:
     image: denstep123/profile-service:latest
@@ -80,6 +109,12 @@ services:
     command: uvicorn services.profile_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8004:8000"]
     networks: [allures-net]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # если есть /health endpoint
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   payment_service:
     image: denstep123/payment-service:latest
@@ -98,6 +133,12 @@ services:
     command: uvicorn services.payment_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8005:8000"]
     networks: [allures-net]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # если есть /health endpoint
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 
 
