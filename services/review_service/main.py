@@ -19,7 +19,8 @@ from common.models.payment import Payment
 from common.models.subscriptions import Subscription, UserSubscription
 from services.review_service.models.recommendation import Recommendation
 from services.review_service.models.review import Review
-from services.review_service.api.routes import router as reviews_router
+from services.review_service.api.routes import router as review_router
+
 from dotenv import load_dotenv
 
 # Загрузка .env
@@ -49,12 +50,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ВАЖНО: без доп. prefix — его уже даёт router ("/reviews")
-# роутер всегда под /reviews
+# ВАЖНО: без доп. prefix — его уже даёт router ("/review")
+# роутер всегда под /review
 if USE_ROOT_PATH:
-    app.include_router(reviews_router, tags=["Reviews"])
+    app.include_router(review_router)                 # без префикса
 else:
-    app.include_router(reviews_router, prefix="/reviews", tags=["Reviews"])
+    app.include_router(review_router, prefix="/review")
 
 @app.on_event("startup")
 def on_startup():

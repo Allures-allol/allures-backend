@@ -1,9 +1,9 @@
 # services/product_service/api/routes.py
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from typing import List,Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from typing import List, Optional
 from pydantic import BaseModel
 
 from common.db.session import get_db
@@ -12,8 +12,8 @@ from common.models.categories import Category as CategoryModel
 from common.models.inventory import Inventory
 
 from services.product_service.api.schemas import (
-    ProductCreate, ProductUpdate, ProductOut, ProductsPage, PageMeta,
-    InventoryCreate, CategoryCreate, Category as CategorySchema, ProductCreateMinimal
+    ProductUpdate, ProductOut,
+    InventoryCreate, CategoryCreate, Category as CategorySchema
 )
 from services.product_service.clients.review_client import (
     reviews_client, ReviewOut, RecommendationOut
@@ -29,208 +29,12 @@ def create_inventory(inventory: InventoryCreate, db: Session):
     db.refresh(db_inventory)
     return db_inventory
 
-# ---------- LIST: PRODUCTS (общий список с пагинацией) ----------
-@router.get("/", response_model=ProductsPage)
-def list_products_simple(
-    db: Session = Depends(get_db),
-    offset: int = Query(0, ge=0, description="Смещение от начала"),
-    limit: int = Query(20, ge=1, le=100, description="Сколько записей вернуть"),
-    q: Optional[str] = Query(None, description="Поиск по name/description"),
-    sort: Optional[str] = Query("-id", description="id|price|created_at|updated_at; '-' для DESC"),
-    company_id: Optional[int] = Query(None, description="ID компании для фильтрации"),
-):
-    qset = db.query(ProductModel)
-    if company_id is not None:
-        qset = qset.filter(ProductModel.company_id == company_id)
-    if q:
-        like = f"%{q.strip()}%"
-        qset = qset.filter(
-            (ProductModel.name.ilike(like)) |
-            (ProductModel.description.ilike(like))
-        )
+# ---------- PRODUCTS (упрощённые) ----------
 
-    sort_map = {
-        "id": ProductModel.id,
-        "price": ProductModel.price,
-        "created_at": ProductModel.created_at,
-        "updated_at": ProductModel.updated_at,
-    }
-    desc = sort.startswith("-") if sort else True
-    key = (sort[1:] if desc else sort) or "id"
-    col = sort_map.get(key, ProductModel.id)
-    qset = qset.order_by(col.desc() if desc else col.asc())
-
-    total = qset.count()
-    items = qset.offset(offset).limit(limit).all()
-
-    return ProductsPage(
-        items=[ProductOut(
-            id=p.id, name=p.name, description=p.description,
-            price=p.price, old_price=p.old_price, image=p.image,
-            status=p.status, current_inventory=p.current_inventory,
-            is_hit=p.is_hit, is_discount=p.is_discount, is_new=p.is_new,
-            created_at=p.created_at, updated_at=p.updated_at,
-            category_id=p.category_id, category_name=p.category_name,
-            subcategory=p.subcategory, product_type=p.product_type,
-            company_id=p.company_id,                      # <--- НОВОЕ
-        ) for p in items],
-        meta=PageMeta(page=(offset // limit + 1), per_page=limit, total=total),
-    )
-
-# Удобный хелпер-листинг только по компании
-@router.get("/company/{company_id}", response_model=ProductsPage)
-def list_by_company(
-    company_id: int,
-    db: Session = Depends(get_db),
-    offset: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-    sort: Optional[str] = Query("-id"),
-):
-    qset = db.query(ProductModel).filter(ProductModel.company_id == company_id)
-
-    sort_map = {
-        "id": ProductModel.id,
-        "price": ProductModel.price,
-        "created_at": ProductModel.created_at,
-        "updated_at": ProductModel.updated_at,
-    }
-    desc = sort.startswith("-") if sort else True
-    key = (sort[1:] if desc else sort) or "id"
-    col = sort_map.get(key, ProductModel.id)
-    qset = qset.order_by(col.desc() if desc else col.asc())
-
-    total = qset.count()
-    items = qset.offset(offset).limit(limit).all()
-
-    return ProductsPage(
-        items=[ProductOut(
-            id=p.id, name=p.name, description=p.description,
-            price=p.price, old_price=p.old_price, image=p.image,
-            status=p.status, current_inventory=p.current_inventory,
-            is_hit=p.is_hit, is_discount=p.is_discount, is_new=p.is_new,
-            created_at=p.created_at, updated_at=p.updated_at,
-            category_id=p.category_id, category_name=p.category_name,
-            subcategory=p.subcategory, product_type=p.product_type,
-            company_id=p.company_id,                      # <--- НОВОЕ
-        ) for p in items],
-        meta=PageMeta(page=(offset // limit + 1), per_page=limit, total=total),
-    )
-
-# ---------- CATEGORIES ----------
-
-@router.get("/categories", response_model=List[CategorySchema])
-def list_categories(db: Session = Depends(get_db)):
-    """Вернёт все категории (глобальные)."""
-    return db.query(CategoryModel).order_by(CategoryModel.category_id.asc()).all()
-
-@router.post("/categories/", response_model=CategorySchema)
-def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
-    try:
-        db_category = CategoryModel(**category.dict())
-        db.add(db_category)
-        db.commit()
-        db.refresh(db_category)
-        return db_category
-    except SQLAlchemyError as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-
-# ---- PATCH /categories/{category_id} ----
-class CategoryUpdate(BaseModel):
-    category_name: Optional[str] = None
-
-@router.patch("/categories/{category_id}", response_model=CategorySchema)
-def patch_category(
-    category_id: int,
-    body: CategoryUpdate,
-    db: Session = Depends(get_db),
-):
-    cat = (
-        db.query(CategoryModel)
-          .filter(CategoryModel.category_id == category_id)
-          .first()
-    )
-    if not cat:
-        raise HTTPException(status_code=404, detail=f"Category with ID {category_id} not found")
-
-    payload = body.dict(exclude_unset=True)
-    if not payload:
-        return cat  # нечего менять
-
-    # обновление имени с валидацией и защитой от дублей
-    if "category_name" in payload and payload["category_name"] is not None:
-        new_name = payload["category_name"].strip()
-        if not new_name:
-            raise HTTPException(status_code=422, detail="category_name cannot be empty")
-
-        # проверка дубля: case-insensitive, обрезаем пробелы
-        dupe = (
-            db.query(CategoryModel.category_id)
-              .filter(
-                  func.lower(func.btrim(CategoryModel.category_name)) == new_name.lower(),
-                  CategoryModel.category_id != category_id
-              )
-              .first()
-        )
-        if dupe:
-            raise HTTPException(status_code=409, detail="Category with this name already exists")
-
-        # собственно обновление
-        cat.category_name = new_name
-
-        # синхронизируем денормализованное имя в товарах
-        db.query(ProductModel)\
-          .filter(ProductModel.category_id == category_id)\
-          .update({ProductModel.category_name: new_name}, synchronize_session=False)
-
-    try:
-        db.commit()
-        db.refresh(cat)
-        return cat
-    except SQLAlchemyError as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-
-@router.get("/categories/{category_id}", response_model=CategorySchema)
-def get_category_by_id(category_id: int, db: Session = Depends(get_db)):
-    category = db.query(CategoryModel).filter(CategoryModel.category_id == category_id).first()
-    if category is None:
-        raise HTTPException(status_code=404, detail=f"Category with ID {category_id} not found")
-    return category
-
-@router.delete("/categories/{category_id}", status_code=204)
-def delete_category(category_id: int, db: Session = Depends(get_db), force: bool = Query(False)):
-    cat = db.query(CategoryModel).filter(CategoryModel.category_id == category_id).first()
-    if not cat:
-        raise HTTPException(status_code=404, detail="Category not found")
-
-    has_products = db.query(ProductModel.id).filter(ProductModel.category_id == category_id).first()
-    if has_products and not force:
-        raise HTTPException(status_code=409, detail="Category has products; pass ?force=true to delete anyway")
-
-    try:
-        if force:
-            db.query(ProductModel).filter(ProductModel.category_id == category_id).delete(synchronize_session=False)
-        db.delete(cat)
-        db.commit()
-        return Response(status_code=204)
-    except SQLAlchemyError as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-
-# ---------- PRODUCTS OF CATEGORY ----------
-@router.get("/categories/{category_id}/products", response_model=List[ProductOut])
-def list_category_products(
-    category_id: int,
-    db: Session = Depends(get_db),
-    company_id: Optional[int] = Query(None, description="Фильтр по компании"),
-):
-    """Все товары по category_id (опц. фильтр по company_id)."""
-    qset = db.query(ProductModel).filter(ProductModel.category_id == category_id)
-    if company_id is not None:
-        qset = qset.filter(ProductModel.company_id == company_id)
-
-    products = qset.order_by(ProductModel.id.desc()).all()
+@router.get("/", response_model=List[ProductOut], summary="List all products (no pagination)")
+def list_products_simple(db: Session = Depends(get_db)):
+    """Все товары по порядку (id ASC: 1,2,3,…)"""
+    items = db.query(ProductModel).order_by(ProductModel.id.asc()).all()
     return [
         ProductOut(
             id=p.id, name=p.name, description=p.description,
@@ -240,40 +44,20 @@ def list_category_products(
             created_at=p.created_at, updated_at=p.updated_at,
             category_id=p.category_id, category_name=p.category_name,
             subcategory=p.subcategory, product_type=p.product_type,
-            company_id=p.company_id,                      # <--- НОВОЕ
-        )
-        for p in products
+            company_id=p.company_id,
+        ) for p in items
     ]
 
-# ---------- PROXY -> REVIEW SERVICE ----------
-@router.get("/users/{user_id}/recommendations", response_model=List[RecommendationOut])
-def get_user_recommendations(user_id: int):
-    try:
-        return reviews_client.get_user_recommendations(user_id)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Review service error: {e}")
-
-@router.get("/{product_id}/reviews", response_model=List[ReviewOut])
-def get_product_reviews(product_id: int):
-    try:
-        return reviews_client.get_reviews_by_product(product_id)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Review service error: {e}")
-
-@router.get("/__debug/review_base")
-def debug_review_base():
-    return {"review_base": reviews_client.get_base()}
-
-# ---------- PRODUCTS CRUD ----------
-@router.get("/all", response_model=List[ProductOut])
-def get_all_products_raw(
-    db: Session = Depends(get_db),
-    company_id: Optional[int] = Query(None, description="Фильтр по компании"),
-):
-    q = db.query(ProductModel)
-    if company_id is not None:
-        q = q.filter(ProductModel.company_id == company_id)
-    items = q.order_by(ProductModel.id.desc()).all()
+@router.get("/company/{company_id}/products", response_model=List[ProductOut],
+            summary="List company products (no pagination)")
+def list_company_products(company_id: int, db: Session = Depends(get_db)):
+    """Все товары конкретной компании (id ASC)."""
+    items = (
+        db.query(ProductModel)
+          .filter(ProductModel.company_id == company_id)
+          .order_by(ProductModel.id.asc())
+          .all()
+    )
     return [
         ProductOut(
             id=p.id, name=p.name, description=p.description,
@@ -283,85 +67,9 @@ def get_all_products_raw(
             created_at=p.created_at, updated_at=p.updated_at,
             category_id=p.category_id, category_name=p.category_name,
             subcategory=p.subcategory, product_type=p.product_type,
-            company_id=p.company_id,                      # <--- НОВОЕ
-        )
-        for p in items
+            company_id=p.company_id,
+        ) for p in items
     ]
-
-@router.get("/{product_id}", response_model=ProductOut)
-def get_product_by_id(
-    product_id: int,
-    db: Session = Depends(get_db),
-    company_id: Optional[int] = Query(None, description="Ожидаемый владелец товара"),
-):
-    product = db.query(ProductModel).filter(ProductModel.id == product_id).first()
-    if not product:
-        raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found")
-    if company_id is not None and product.company_id != company_id:
-        # прячем чужие товары
-        raise HTTPException(status_code=404, detail="Product not found")
-    return product
-
-@router.post("/products/", response_model=ProductOut, status_code=201)
-def create_product_minimal(body: ProductCreateMinimal, db: Session = Depends(get_db)):
-    # company обязателен
-    if not body.company_id:
-        raise HTTPException(400, "Укажите company_id")
-
-    # найдём категорию: либо по id, либо по имени
-    cat = None
-    if body.category_id:
-        cat = db.query(CategoryModel).filter_by(category_id=body.category_id).one_or_none()
-    elif body.category_name:
-        norm = body.category_name.strip().lower()
-        cat = (db.query(CategoryModel)
-               .filter(func.lower(func.btrim(CategoryModel.category_name)) == norm)
-               .order_by(CategoryModel.category_id.asc())
-               .first())
-    if not cat:
-        raise HTTPException(404, "Категория не найдена")
-
-    # проверка дубля в рамках (company_id, category_id, lower(btrim(name)))
-    name_norm = body.name.strip().lower()
-    duplicate = (db.query(ProductModel.id)
-                 .filter(
-                     func.lower(func.btrim(ProductModel.name)) == name_norm,
-                     ProductModel.category_id == cat.category_id,
-                     ProductModel.company_id == body.company_id
-                 )
-                 .first())
-    if duplicate:
-        raise HTTPException(409, "Такой товар уже существует в этой компании и категории")
-
-    # создание
-    p = ProductModel(
-        company_id=body.company_id,
-        name=body.name.strip(),
-        description=(body.description or "").strip(),
-        price=body.price,
-        old_price=None,
-        image=body.image or None,
-        status="active",
-        current_inventory=0,
-        is_hit=False, is_discount=False, is_new=False,
-        category_id=cat.category_id,
-        category_name=cat.category_name,
-        subcategory=body.subcategory or None,
-        product_type=body.product_type or "physical",
-    )
-
-    db.add(p)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(409, "Конфликт уникальности")
-    except SQLAlchemyError as e:
-        db.rollback()
-        raise HTTPException(500, f"DB error: {e}")
-
-    db.refresh(p)
-    return p
 
 @router.put("/{product_id}", response_model=ProductOut)
 def update_product(
@@ -370,6 +78,7 @@ def update_product(
     db: Session = Depends(get_db),
     company_id: Optional[int] = Query(None, description="ID компании-владельца"),
 ):
+    """Простой апдейт продукта. Если передан current_inventory — пишем снапшот в инвентарь."""
     try:
         db_product = db.query(ProductModel).filter_by(id=product_id).first()
         if not db_product:
@@ -403,6 +112,7 @@ def delete_product(
     db: Session = Depends(get_db),
     company_id: Optional[int] = Query(None, description="ID компании-владельца"),
 ):
+    """Удалить продукт (опц. проверка владельца)."""
     prod = db.query(ProductModel).filter(ProductModel.id == product_id).first()
     if not prod:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -415,3 +125,194 @@ def delete_product(
     except SQLAlchemyError as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+# ---------- CATEGORIES ----------
+
+@router.get("/categories", response_model=List[CategorySchema])
+def list_categories(db: Session = Depends(get_db)):
+    """Вернёт все категории (id ASC)."""
+    return db.query(CategoryModel).order_by(CategoryModel.category_id.asc()).all()
+
+@router.post("/categories/", response_model=CategorySchema)
+def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
+    """Создать категорию (минимум полей)."""
+    try:
+        db_category = CategoryModel(**category.dict())
+        db.add(db_category)
+        db.commit()
+        db.refresh(db_category)
+        return db_category
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+class CategoryUpdate(BaseModel):
+    category_name: Optional[str] = None
+
+@router.patch("/categories/{category_id}", response_model=CategorySchema)
+def patch_category(
+    category_id: int,
+    body: CategoryUpdate,
+    db: Session = Depends(get_db),
+):
+    """Переименовать категорию + синхронизировать денормализованное имя в товарах."""
+    cat = (
+        db.query(CategoryModel)
+          .filter(CategoryModel.category_id == category_id)
+          .first()
+    )
+    if not cat:
+        raise HTTPException(status_code=404, detail=f"Category with ID {category_id} not found")
+
+    payload = body.dict(exclude_unset=True)
+    if not payload:
+        return cat
+
+    if "category_name" in payload and payload["category_name"] is not None:
+        new_name = payload["category_name"].strip()
+        if not new_name:
+            raise HTTPException(status_code=422, detail="category_name cannot be empty")
+
+        dupe = (
+            db.query(CategoryModel.category_id)
+              .filter(
+                  func.lower(func.btrim(CategoryModel.category_name)) == new_name.lower(),
+                  CategoryModel.category_id != category_id
+              )
+              .first()
+        )
+        if dupe:
+            raise HTTPException(status_code=409, detail="Category with this name already exists")
+
+        cat.category_name = new_name
+        db.query(ProductModel)\
+          .filter(ProductModel.category_id == category_id)\
+          .update({ProductModel.category_name: new_name}, synchronize_session=False)
+
+    try:
+        db.commit()
+        db.refresh(cat)
+        return cat
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@router.get("/categories/{category_id}", response_model=CategorySchema)
+def get_category_by_id(category_id: int, db: Session = Depends(get_db)):
+    category = db.query(CategoryModel).filter(CategoryModel.category_id == category_id).first()
+    if category is None:
+        raise HTTPException(status_code=404, detail=f"Category with ID {category_id} not found")
+    return category
+
+@router.delete("/categories/{category_id}", status_code=204)
+def delete_category(category_id: int, db: Session = Depends(get_db), force: bool = Query(False)):
+    """Удалить категорию. Если есть товары и force=false — вернуть 409."""
+    cat = db.query(CategoryModel).filter(CategoryModel.category_id == category_id).first()
+    if not cat:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+    has_products = db.query(ProductModel.id).filter(ProductModel.category_id == category_id).first()
+    if has_products and not force:
+        raise HTTPException(status_code=409, detail="Category has products; pass ?force=true to delete anyway")
+
+    try:
+        if force:
+            db.query(ProductModel).filter(ProductModel.category_id == category_id).delete(synchronize_session=False)
+        db.delete(cat)
+        db.commit()
+        return Response(status_code=204)
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@router.get("/categories/{category_id}/products", response_model=List[ProductOut])
+def list_category_products(
+    category_id: int,
+    db: Session = Depends(get_db),
+    company_id: Optional[int] = Query(None, description="Фильтр по компании"),
+):
+    """Все товары по category_id (опц. фильтр по company_id), по убыванию id."""
+    qset = db.query(ProductModel).filter(ProductModel.category_id == category_id)
+    if company_id is not None:
+        qset = qset.filter(ProductModel.company_id == company_id)
+
+    products = qset.order_by(ProductModel.id.desc()).all()
+    return [
+        ProductOut(
+            id=p.id, name=p.name, description=p.description,
+            price=p.price, old_price=p.old_price, image=p.image,
+            status=p.status, current_inventory=p.current_inventory,
+            is_hit=p.is_hit, is_discount=p.is_discount, is_new=p.is_new,
+            created_at=p.created_at, updated_at=p.updated_at,
+            category_id=p.category_id, category_name=p.category_name,
+            subcategory=p.subcategory, product_type=p.product_type,
+            company_id=p.company_id,
+        )
+        for p in products
+    ]
+
+# ---------- PROXY -> REVIEW SERVICE ----------
+# ВАЖНО: review_client должен указывать корректную базу.
+# Если ваш review-сервис отдает эндпоинты на /review/… — база вида http://host:port/review.
+# Если без /review (т.е. /product/... сразу от корня) — база вида http://host:port.
+
+@router.get("/users/{user_id}/recommendations", response_model=List[RecommendationOut])
+def get_user_recommendations(user_id: int):
+    """Прокси: рекомендации для пользователя."""
+    try:
+        return reviews_client.get_user_recommendations(user_id)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Review service error: {e}")
+
+@router.get("/{product_id}/reviews", response_model=List[ReviewOut])
+def get_product_reviews(product_id: int):
+    """Прокси: отзывы по продукту."""
+    try:
+        return reviews_client.get_reviews_by_product(product_id)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Review service error: {e}")
+
+# ---------- DEBUG ----------
+@router.get("/__debug/review_base")
+def debug_review_base():
+    """Текущая база, куда ходит review_client."""
+    return {"review_base": reviews_client.get_base()}
+
+@router.get("/__debug/review_probe")
+def debug_review_probe():
+    """Проверка нескольких эндпоинтов review-сервиса с каждой базой-кандидатом."""
+    return reviews_client.probe()
+
+# --- : DELETE proxies ---
+
+@router.delete("/reviews/{review_id}", status_code=204, summary="Proxy: delete single review by id")
+def proxy_delete_review(review_id: int):
+    try:
+        reviews_client.delete_review(review_id)
+        return
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Review service error: {e}")
+
+@router.delete("/{product_id}/reviews", summary="Proxy: delete all product reviews (optionally by user_id)")
+def proxy_delete_reviews_of_product(product_id: int, user_id: Optional[int] = Query(None)):
+    try:
+        result = reviews_client.delete_reviews_of_product(product_id, user_id=user_id)
+        return result  # {"deleted": N}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Review service error: {e}")
+
+@router.delete("/recommendations/{rec_id}", status_code=204, summary="Proxy: delete single recommendation")
+def proxy_delete_recommendation(rec_id: int):
+    try:
+        reviews_client.delete_recommendation(rec_id)
+        return
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Review service error: {e}")
+
+@router.delete("/users/{user_id}/recommendations", summary="Proxy: delete all recommendations of a user")
+def proxy_delete_recommendations_of_user(user_id: int):
+    try:
+        result = reviews_client.delete_recommendations_of_user(user_id)
+        return result  # {"deleted": N}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Review service error: {e}")

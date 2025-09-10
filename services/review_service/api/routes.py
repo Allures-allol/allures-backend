@@ -217,6 +217,37 @@ def lookup_subscription_via_review(
 
     raise HTTPException(status_code=400, detail="Provide subscription_id or subscription_name")
 
+# ---- УДАЛЕНИЕ ОТЗЫВА ПО review_id ----
+@router.delete("/reviews/{review_id}", status_code=204, summary="Delete single review by id")
+def delete_review(review_id: int, db: Session = Depends(get_db)):
+    try:
+        r = db.query(ReviewModel).filter(ReviewModel.id == review_id).first()
+        if not r:
+            raise HTTPException(status_code=404, detail="Review not found")
+        db.delete(r)
+        db.commit()
+        return
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
+# ---- УДАЛЕНИЕ ВСЕХ ОТЗЫВОВ ТОВАРА (опц. только одного юзера) ----
+@router.delete("/product/{product_id}", summary="Delete all reviews of product (optionally by user_id)")
+def delete_reviews_of_product(
+    product_id: int,
+    user_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    try:
+        q = db.query(ReviewModel).filter(ReviewModel.product_id == product_id)
+        if user_id is not None:
+            q = q.filter(ReviewModel.user_id == user_id)
+        deleted = q.delete(synchronize_session=False)
+        db.commit()
+        return {"deleted": deleted}
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
 # === RECOMMENDATIONS ===
 @router.get("/recommendations/", response_model=List[RecommendationOut])
@@ -279,6 +310,21 @@ def update_recommendation_route(id: int, data: RecommendationCreate, db: Session
 def delete_recommendation_route(id: int, db: Session = Depends(get_db)):
     delete_recommendation(db, id)
     return
+
+# ---- УДАЛЕНИЕ РЕКОМЕНДАЦИИ ПО rec_id ----
+@router.delete("/recommendations/{rec_id}", status_code=204, summary="Delete single recommendation by id")
+def delete_recommendation(rec_id: int, db: Session = Depends(get_db)):
+    try:
+        rec = db.query(RecommendationModel).filter(RecommendationModel.id == rec_id).first()
+        if not rec:
+            raise HTTPException(status_code=404, detail="Recommendation not found")
+        db.delete(rec)
+        db.commit()
+        return
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
 
 @router.get("/recommendations/filtered/")
 def get_filtered_recommendations(min_score: float = 0.5, db: Session = Depends(get_db)):

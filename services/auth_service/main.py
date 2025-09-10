@@ -50,6 +50,8 @@ app.include_router(auth_router.router)
 app.include_router(profile_router.router)
 app.include_router(user_router.router)
 
+print(f"✅ ALLOWED_ORIGINS: {ALLOWED_ORIGINS}")
+
 @app.get("/health", tags=["meta"])
 def health():
     return {"status": "ok"}

@@ -13,7 +13,7 @@ class Subscription(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     code = Column(String(50), nullable=False)
-    language = Column(String(5), nullable=False, default="ru")   # NOT NULL + default
+    language = Column(String(5), nullable=False, default="uk")
     name = Column(String(50), nullable=False)
     price = Column(Integer, nullable=False)
     duration_days = Column(Integer, nullable=False)

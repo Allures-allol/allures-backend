@@ -1,3 +1,4 @@
+
 # main.py product_service
 import os
 import sys
@@ -6,8 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-# Добавление корневого пути (чтобы импортировать общие модули)
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))  # доступ к /services и /common
+# импорт общих модулей
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from dotenv import load_dotenv
 from common.db.session import get_db
@@ -15,10 +16,13 @@ from common.config.settings import settings
 from common.models.products import Product as ProductModel
 from common.models.categories import Category as CategoryModel
 
+<<<<<<< HEAD
 # роутер продуктов
 from services.product_service.api.routes import router as product_router
 
 # Загрузка .env переменных
+from services.product_service.api.routes import router as product_router
+
 load_dotenv()
 
 USE_ROOT_PATH = os.getenv("PRODUCT_USE_ROOT_PATH", "0") == "1"
@@ -31,13 +35,13 @@ app = FastAPI(
     openapi_url="/openapi.json",
 )
 
-# CORS
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://api.alluresallol.com",
     "https://alluresallol.com",
 ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -52,10 +56,10 @@ app.add_middleware(
 @app.get("/health", include_in_schema=False)
 def health():
     return {"status": "ok"}
-
 # ==============================
 # Подключение роутера продуктов
 # ==============================
+# ВНИМАНИЕ: либо root_path, либо префикс — не оба сразу!
 if USE_ROOT_PATH:
     app.include_router(product_router, tags=["products"])
 else:
@@ -66,6 +70,7 @@ print(" MAINDB_URL из settings:", settings.MAINDB_URL)
 # ==============================
 # Событие старта
 # ==============================
+
 @app.on_event("startup")
 def startup_event():
     db_gen = get_db()
