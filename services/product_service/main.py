@@ -1,5 +1,5 @@
+# services/product_service/main.py
 
-# main.py product_service
 import os
 import sys
 from fastapi import FastAPI, Depends
@@ -16,7 +16,6 @@ from common.config.settings import settings
 from common.models.products import Product as ProductModel
 from common.models.categories import Category as CategoryModel
 
-<<<<<<< HEAD
 # роутер продуктов
 from services.product_service.api.routes import router as product_router
 
