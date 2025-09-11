@@ -1,39 +1,40 @@
 # services/review_service/main.py
-import sys
 import os
+import sys
 
-# Добавление корневого пути (для доступа к /services и /common)
+# доступ к /services и /common
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from sqlalchemy import text
-from common.db.base import Base
-from common.db.session import engine, get_db
-from common.config.settings import settings
-
-from common.models.products import Product
-from common.models.categories import Category
-from common.models.payment import Payment
-from common.models.subscriptions import Subscription, UserSubscription
-from services.review_service.models.recommendation import Recommendation
-from services.review_service.models.review import Review
-from services.review_service.api.routes import router as review_router
-
 from dotenv import load_dotenv
 
-# Загрузка .env
+from common.db.base import Base
+from common.db.session import engine, get_db
+from common.models.categories import Category  # noqa: F401
+from common.models.products import Product  # noqa: F401
+from services.review_service.api.routes_reviews import reviews_router
+from services.review_service.api.routes_recs import recs_router
+
 load_dotenv()
 
 USE_ROOT_PATH = os.getenv("REVIEW_USE_ROOT_PATH", "0") == "1"
 
+openapi_tags = [
+    {"name": "Reviews", "description": "CRUD по отзывам и модерация."},
+    {"name": "Recommendations", "description": "Рекомендации и связанные операции."},
+]
+
 app = FastAPI(
     title="Review Service",
+    version="1.0.0",
     root_path="/review" if USE_ROOT_PATH else "",
-    docs_url="/docs",            # снаружи: /reviews/docs
+    docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
+    openapi_tags=openapi_tags,
+    debug=True,
 )
 
 ALLOWED_ORIGINS = [
@@ -50,21 +51,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ВАЖНО: без доп. prefix — его уже даёт router ("/review")
-# роутер всегда под /review
+# /review/... единый внешний префикс, группы задаются тегами
 if USE_ROOT_PATH:
-    app.include_router(review_router)                 # без префикса
+    app.include_router(reviews_router, tags=["Reviews"])
+    app.include_router(recs_router, tags=["Recommendations"])
 else:
-    app.include_router(review_router, prefix="/review")
+    app.include_router(reviews_router, prefix="/review", tags=["Reviews"])
+    app.include_router(recs_router, prefix="/review", tags=["Recommendations"])
+
 
 @app.on_event("startup")
-def on_startup():
-    # если нужны таблицы для review/recommendation — создаём
+def on_startup() -> None:
+    # создаём таблицы, если их ещё нет
     try:
         Base.metadata.create_all(bind=engine)
     except Exception as e:
         print(f" Base.metadata.create_all: {e}")
 
+    # простая проверка коннекта к БД
     db_gen = get_db()
     db = next(db_gen)
     try:
@@ -75,12 +79,29 @@ def on_startup():
     finally:
         db.close()
 
-@app.get("/health")
+
+@app.get("/health", include_in_schema=False)
 def health():
     return {"status": "ok"}
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def root():
     return {"message": "Review Service is running"}
 
+@app.get("/__debug/db")
+def debug_db():
+    import os
+    return {
+        "MAINDB_URL": os.getenv("MAINDB_URL", "(not set)"),
+        "DATABASE_URL": os.getenv("DATABASE_URL", "(not set)"),
+        "USE_ROOT_PATH": USE_ROOT_PATH,
+    }
+
+@app.get("/__debug/tables")
+def debug_tables():
+    from sqlalchemy import inspect
+    insp = inspect(engine)
+    return {"tables": insp.get_table_names()}
+
 # uvicorn services.review_service.main:app --reload --port 8002
+#  или с логами uvicorn services.review_service.main:app --reload --port 8002 --log-level debug

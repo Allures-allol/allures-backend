@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 import httpx
 
+from services.admin_service.crud import admin_crud
 from common.db.session import get_db
 from common.config.settings import settings
 
@@ -29,15 +30,16 @@ from services.admin_service.utils.security import verify_password
 router = APIRouter(tags=["Admin"])
 
 # --------- аккаунты админов ---------
-@router.post("/create", response_model=AdminUserOut, responses={409: {"model": ErrorResponse}})
-def create_admin(admin: AdminUserCreate, db: Session = Depends(get_db)):
-    try:
-        return admin_crud.create_admin_user(db, admin)
-    except ValueError as e:
-        code = str(e)
-        if code in ("DUPLICATE_EMAIL", "DUPLICATE_USERNAME", "UNIQUE_VIOLATION"):
-            raise HTTPException(status_code=409, detail={"code": code, "message": "Unique constraint violation"})
-        raise
+
+@router.get("/list", response_model=AdminUsersPage)
+def list_admins_simple(
+    db: Session = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    order_by: str | None = Query("-date_registration", description="username|email|date_registration|last_login_date (с префиксом '-' для DESC)")
+):
+    data, total = admin_crud.list_admins_simple(db, page=page, page_size=page_size, order_by=order_by)
+    return {"meta": PageMeta(page=page, page_size=page_size, total=total), "data": data}
 
 @router.post("/login", response_model=AdminLoginResponse, responses={401: {"model": ErrorResponse}})
 def login_admin(credentials: AdminLogin, db: Session = Depends(get_db)):

@@ -19,6 +19,29 @@ from common.models.uploads import Upload
 from services.admin_service.utils.security import hash_password, verify_password
 
 
+_ALLOWED_ORDER = {
+    "date_registration": AdminUser.date_registration,
+    "username": AdminUser.username,
+    "email": AdminUser.email,
+    "last_login_date": AdminUser.last_login_date,
+}
+
+def _apply_order_simple(q, order_by: str | None):
+    if not order_by:
+        return q.order_by(desc(AdminUser.date_registration))
+    s = order_by.strip()
+    direction = desc if s.startswith("-") else asc
+    field = s.lstrip("-")
+    column = _ALLOWED_ORDER.get(field, AdminUser.date_registration)
+    return q.order_by(direction(column))
+
+def list_admins_simple(db: Session, page: int, page_size: int, order_by: str | None) -> Tuple[List[AdminUser], int]:
+    q = db.query(AdminUser)
+    total = q.count()
+    q = _apply_order_simple(q, order_by)
+    data = q.offset((page - 1) * page_size).limit(page_size).all()
+    return data, total
+
 # ---------- helpers ----------
 def _apply_filters(q, flt: AdminUserFilter):
     if flt.email:

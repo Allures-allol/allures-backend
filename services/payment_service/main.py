@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from common.db.session import get_db
 from services.payment_service.routers.monobank_routes import router as monobank_router
 from services.payment_service.routers.public_history_router import router as public_history_router
+from services.payment_service.routers.routes_simple import router as simple_router
 
 load_dotenv()
 
@@ -30,6 +31,7 @@ ALLOWED_ORIGINS = [
     "https://api.alluresallol.com",
     "https://alluresallol.com",
 ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -38,35 +40,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Публичные (без токенов): история платежей/заказов
+# ==============================
+# Подключение роутеров
+# ==============================
+
 if USE_ROOT_PATH:
     app.include_router(public_history_router)
+    app.include_router(monobank_router)
+    app.include_router(simple_router)
 else:
     app.include_router(public_history_router, prefix="/payment")
-
-# Monobank: создание инвойса + вебхук
-if USE_ROOT_PATH:
-    app.include_router(monobank_router, tags=["Monobank"])
-else:
-    app.include_router(monobank_router, prefix="/monobank", tags=["Monobank"])
+    app.include_router(monobank_router, prefix="/monobank")
+    app.include_router(simple_router, prefix="/payment")
 
 
-@app.on_event("startup")
-def startup_event():
-    # ... твоя проверка БД ...
-    print("=== ROUTES ===")
-    for r in app.routes:
-        try:
-            print(getattr(r, "path", None), getattr(r, "methods", None))
-        except Exception:
-            pass
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+# ==============================
+# События и служебные ручки
+# ==============================
 
 @app.on_event("startup")
 def startup_event():
+    # проверка базы
     db_gen = get_db()
     db = next(db_gen)
     try:
@@ -77,9 +71,24 @@ def startup_event():
     finally:
         db.close()
 
-@app.get("/")
+    # печать маршрутов
+    print("=== ROUTES ===")
+    for r in app.routes:
+        try:
+            print(getattr(r, "path", None), getattr(r, "methods", None))
+        except Exception:
+            pass
+
+
+@app.get("/health", include_in_schema=False)
+def health():
+    return {"status": "ok"}
+
+
+@app.get("/", include_in_schema=False)
 def root():
     return {"message": "Payment Service is running"}
+
 
 # запуск локально:
 # uvicorn services.payment_service.main:app --reload --port 8005

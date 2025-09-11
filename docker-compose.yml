@@ -7,20 +7,16 @@ services:
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
-      # === SMTP через Mailpit (внутренняя сеть) ===
-      #SMTP_HOST: mailpit
-      #SMTP_PORT: "1025"
     command: uvicorn services.auth_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8003:8000"]
     networks: [allures-net]
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]  # если есть /health endpoint
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
 
-  # остальные сервисы без изменений…
   product_service:
     image: denstep123/product-service:latest
     container_name: product_service
@@ -29,14 +25,14 @@ services:
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
-      # тут явно продублируем, если не уверен что подтянется из env_file
+      # базовый URL review без префикса, т.к. ниже у review включаем root_path
       REVIEW_SERVICE_URL: "http://review_service:8000"
     command: uvicorn services.product_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8000:8000"]
     depends_on: [review_service]
     networks: [allures-net]
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]  # если есть /health endpoint
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -50,11 +46,12 @@ services:
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
+      REVIEW_USE_ROOT_PATH: "1"     # ← включаем root_path="/review"
     command: uvicorn services.review_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8002:8000"]
     networks: [allures-net]
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]  # если есть /health endpoint
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -73,7 +70,7 @@ services:
     ports: ["8011:8000"]
     networks: [allures-net]
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]  # если есть /health endpoint
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -94,7 +91,7 @@ services:
     depends_on: [subscription_service]
     networks: [allures-net]
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]  # если есть /health endpoint
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -112,7 +109,7 @@ services:
     ports: ["8004:8000"]
     networks: [allures-net]
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]  # если есть /health endpoint
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -126,23 +123,20 @@ services:
     environment:
       PYTHONPATH: /app:/app/common
       TZ: "Europe/Kyiv"
-      PAYMENT_USE_ROOT_PATH: "1"               # ← если за прокси на /payment
-      MAINDB_URL: "${MAINDB_URL}"              # ← обязательна строка подключения
-      MONOBANK_TOKEN: "${MONOBANK_TOKEN}"      # ← если используется Monobank
-      MONOBANK_REDIRECT_URL: "${MONOBANK_REDIRECT_URL}"   # опционально
-      MONOBANK_WEBHOOK_URL: "${MONOBANK_WEBHOOK_URL}"     # опционально
-      # DEBUG: "0"
+      PAYMENT_USE_ROOT_PATH: "1"
+      MAINDB_URL: "${MAINDB_URL}"
+      MONOBANK_TOKEN: "${MONOBANK_TOKEN}"
+      MONOBANK_REDIRECT_URL: "${MONOBANK_REDIRECT_URL}"
+      MONOBANK_WEBHOOK_URL: "${MONOBANK_WEBHOOK_URL}"
     command: uvicorn services.payment_service.main:app --host 0.0.0.0 --port 8000
     ports: ["8005:8000"]
     networks: [allures-net]
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]  # если есть /health endpoint
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
-
-
 
 networks:
   allures-net:

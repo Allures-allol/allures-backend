@@ -154,19 +154,3 @@ def monobank_user_history(user_id: int, company_id: Optional[int] = None, db: Se
             )
         )
     return result
-
-
-@router.delete("/{payment_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Monobank"])
-def delete_payment_by_id(payment_id: int, db: Session = Depends(get_db)):
-    ok = delete_payment(db, payment_id)
-    if not ok:
-        raise HTTPException(status_code=404, detail="Payment not found")
-    return
-
-
-@router.delete("/by-invoice/{invoice_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Monobank"])
-def delete_payment_invoice(invoice_id: str, db: Session = Depends(get_db)):
-    ok = delete_payment_by_invoice_id(db, invoice_id)
-    if not ok:
-        raise HTTPException(status_code=404, detail="Payment not found")
-    return

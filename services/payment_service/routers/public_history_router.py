@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import List, Optional
-
+from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text as sqla_text
@@ -12,17 +12,41 @@ from common.models.payment import Payment
 from services.payment_service.crud.payment import get_all_payments
 from services.payment_service.schemas.public import PaymentOut, OrderOut
 
-router = APIRouter()
-
-# Пытаемся использовать реальную таблицу orders (1:1 с payments)
+# если Order не всегда есть:
 try:
-    from common.models.order import Order  # новая модель заказов
+    from common.models.order import Order  # type: ignore
     HAS_ORDER_MODEL = True
 except Exception:
-    Order = None
+    Order = None  # type: ignore
     HAS_ORDER_MODEL = False
 
+router = APIRouter()
 
+def _order_cols_available() -> List[str]:
+    if not (HAS_ORDER_MODEL and Order is not None):
+        return []
+    # имена колонок, которые нам потенциально нужны
+    wanted = [
+        "id", "user_id", "company_id", "product_id", "category_id",
+        "quantity", "total_price", "currency", "status",
+        "sold_at", "created_at",
+    ]
+    # оставим только реально существующие в таблице
+    existing = set(Order.__table__.columns.keys())
+    return [c for c in wanted if c in existing]
+
+def _row_to_out(row, colnames) -> dict:
+    # row — это кортеж, если мы делали with_entities
+    asdict = {name: val for name, val in zip(colnames, row)}
+    return {
+        "id": asdict.get("id"),
+        "user_id": asdict.get("user_id"),
+        "company_id": asdict.get("company_id"),
+        "product_id": asdict.get("product_id"),
+        "quantity": int(asdict.get("quantity") or 1),
+        "total_price": float(asdict.get("total_price") or 0),
+        "sold_at": asdict.get("sold_at") or asdict.get("created_at"),
+    }
 # -----------------------------
 # Публичные ручки
 # -----------------------------
@@ -65,7 +89,6 @@ def public_payment_history(
         for p in items
     ]
 
-
 @router.get("/history/orders", response_model=List[OrderOut], tags=["Public"])
 def public_order_history(
     user_id: int = Query(..., ge=1),
@@ -73,50 +96,90 @@ def public_order_history(
     db: Session = Depends(get_db),
 ):
     """
-    История «заказов».
-    1) Если есть таблица orders — читаем из неё.
+    История заказов.
+    1) Если есть таблица orders — берём ТОЛЬКО реально существующие колонки (with_entities),
+       чтобы не трогать отсутствующие (напр. cart_id).
     2) Иначе fallback: 1 платёж = 1 заказ (из payments).
     """
     try:
+        # --- Путь через orders (безопасный выбор колонок) ---
         if HAS_ORDER_MODEL and Order is not None:
-            q = db.query(Order).filter(Order.user_id == user_id)
-            if company_id is not None:
-                q = q.filter(Order.company_id == company_id)
-            rows = q.order_by(Order.sold_at.desc()).all()
-            return [
-                OrderOut(
-                    id=r.id,
-                    user_id=r.user_id,
-                    company_id=r.company_id,
-                    product_id=getattr(r, "product_id", None),
-                    quantity=int(getattr(r, "quantity", 1) or 1),
-                    total_price=float(getattr(r, "total_price", 0) or 0),
-                    sold_at=r.sold_at,
-                )
-                for r in rows
-            ]
+            colnames = _order_cols_available()
+            if colnames:
+                cols = [getattr(Order, c) for c in colnames]
+                q = db.query(*cols).filter(getattr(Order, "user_id") == user_id)
+                if company_id is not None and "company_id" in colnames:
+                    q = q.filter(getattr(Order, "company_id") == company_id)
 
-        # fallback: 1 платёж = 1 заказ
-        q = db.query(Payment).filter(Payment.user_id == user_id)
-        if company_id is not None:
-            q = q.filter(Payment.company_id == company_id)
-        payments = q.order_by(Payment.created_at.desc()).all()
+                # сортировка: sold_at -> created_at -> id
+                if "sold_at" in colnames:
+                    q = q.order_by(getattr(Order, "sold_at").desc())
+                elif "created_at" in colnames:
+                    q = q.order_by(getattr(Order, "created_at").desc())
+                else:
+                    q = q.order_by(getattr(Order, "id").desc())
+
+                rows = q.all()
+                return [OrderOut(**_row_to_out(r, colnames)) for r in rows]
+            # если таблица есть, но из нужного набора не найдено ни одной колонки — уйдём на fallback
+
+        # --- Fallback: 1 платёж = 1 заказ ---
+        qp = db.query(Payment).filter(Payment.user_id == user_id)
+        if company_id is not None and hasattr(Payment, "company_id"):
+            qp = qp.filter(Payment.company_id == company_id)
+        qp = qp.order_by(
+            getattr(Payment, "created_at", Payment.id).desc()
+        )
+        payments = qp.all()
         return [
             OrderOut(
-                id=p.id,  # используем id платежа как id заказа
+                id=p.id,
                 user_id=p.user_id,
-                company_id=p.company_id,
+                company_id=getattr(p, "company_id", None),
                 product_id=None,
                 quantity=1,
-                total_price=float(p.amount or 0),
-                sold_at=p.created_at,
+                total_price=float(getattr(p, "amount", 0) or 0),
+                sold_at=getattr(p, "created_at", None),
             )
             for p in payments
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"orders handler error: {e}")
+@router.delete("/payment/delete/by-id/{payment_id}", summary="Удалить платёж по id")
+def delete_payment_by_id(payment_id: int, db: Session = Depends(get_db)):
+    obj = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    try:
+        db.delete(obj)
+        db.commit()
+    except IntegrityError as e:  # например, ссылка из orders без CASCADE
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Payment is referenced by other records (e.g., orders). Delete dependents first or add ON DELETE CASCADE."
+        )
+    return {"ok": True, "deleted_id": payment_id}
 
-
+@router.delete("/payment/delete/by-invoice/{invoice_id}", summary="Удалить платёж по invoiceId")
+def delete_payment_by_invoice(invoice_id: str, db: Session = Depends(get_db)):
+    obj = (
+        db.query(Payment)
+          .filter(Payment.provider_invoice_id == invoice_id)
+          .first()
+    )
+    if not obj:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    try:
+        db.delete(obj)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Payment is referenced by other records (e.g., orders). Delete dependents first or add ON DELETE CASCADE."
+        )
+    return {"ok": True, "deleted_invoice_id": invoice_id}
 # -----------------------------
 # Debug (dev only)
 # -----------------------------
