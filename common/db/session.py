@@ -14,7 +14,7 @@ if not DB_URL:
 
 MAX_RETRIES = 3
 RETRY_DELAY = 5  # сек
-POOL_SIZE = 5
+POOL_SIZE = 15
 MAX_OVERFLOW = 0
 POOL_RECYCLE = 300  # 5 минут
 
