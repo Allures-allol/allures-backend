@@ -21,7 +21,7 @@ from services.product_service.clients.review_client import (
     reviews_client, ReviewOut, RecommendationOut
 )
 
-router = APIRouter(strict_slashes=False)
+router = APIRouter()
 
 # ---------- helpers ----------
 def create_inventory(inventory: InventoryCreate, db: Session):
@@ -131,6 +131,7 @@ def delete_product(
 # ---------- CATEGORIES ----------
 
 @router.get("/categories", response_model=List[CategorySchema])
+@router.get("/categories/", response_model=List[CategorySchema])
 def list_categories(db: Session = Depends(get_db)):
     """Вернёт все категории (id ASC)."""
     return db.query(CategoryModel).order_by(CategoryModel.category_id.asc()).all()
