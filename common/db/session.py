@@ -16,7 +16,7 @@ MAX_RETRIES = 3
 RETRY_DELAY = 5  # сек
 POOL_SIZE = 5
 MAX_OVERFLOW = 0
-POOL_RECYCLE = 300  # секунды, 5 минут
+POOL_RECYCLE = 300  # 5 минут
 
 def create_engine_with_retries():
     last_err = None
@@ -26,7 +26,7 @@ def create_engine_with_retries():
                 DB_URL,
                 future=True,
                 echo=bool(settings.DB_ECHO),
-                pool_pre_ping=True,      # проверяем соединение перед использованием
+                pool_pre_ping=True,
                 pool_size=POOL_SIZE,
                 max_overflow=MAX_OVERFLOW,
                 pool_recycle=POOL_RECYCLE
@@ -45,22 +45,23 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, futu
 
 def get_db():
     """
-    Генератор сессии. Авто-закрытие + обработка OperationalError.
-    Если пул перегружен или соединение упало — сбросим пул и переподключимся.
+    Генератор сессии. Авто-закрытие + переподключение при OperationalError.
     """
+    global engine, SessionLocal  # <- должно быть в начале функции
+    db = None
     try:
         db = SessionLocal()
         yield db
     except OperationalError as e:
         print("[DB] OperationalError, переподключаемся:", e)
-        global engine, SessionLocal
-        engine.dispose()  # сброс всех соединений пула
+        dispose_engine()  # сброс пула
         engine = create_engine_with_retries()
         SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
         db = SessionLocal()
         yield db
     finally:
-        db.close()
+        if db:
+            db.close()
 
 def dispose_engine():
     """
