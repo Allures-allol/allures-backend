@@ -21,7 +21,7 @@ from services.product_service.clients.review_client import (
     reviews_client, ReviewOut, RecommendationOut
 )
 
-router = APIRouter()
+router = APIRouter(strict_slashes=False)
 
 # ---------- helpers ----------
 def create_inventory(inventory: InventoryCreate, db: Session):
